@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2b2f33">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OrçaPro">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Orçamentos - Manutenção Predial</title>
+<style>
+  :root {
+    --concreto: #2b2f33;
+    --concreto-claro: #454b52;
+    --concreto-claro2: #565d65;
+    --papel: #f2efe9;
+    --amarelo-obra: #f5a623;
+    --amarelo-obra-escuro: #d68c10;
+    --verde-ok: #4caf6b;
+    --vermelho-remover: #e35b5b;
+    --linha: #3a3f45;
+    --texto-claro: #f2efe9;
+    --texto-suave: #b7bcc2;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--concreto);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tela { display: none; flex-direction: column; min-height: 100vh; }
+  .tela.ativa { display: flex; }
+
+  header {
+    padding: 22px 20px 16px 20px;
+    border-bottom: 1px solid var(--linha);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .voltar {
+    background: none;
+    border: none;
+    color: var(--texto-claro);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 6px 4px 0;
+    line-height: 1;
+  }
+
+  header .titulos { flex: 1; }
+
+  header .eyebrow {
+    color: var(--amarelo-obra);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0 0 4px 0;
+  }
+
+  header h1 {
+    color: var(--texto-claro);
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  header p.sub {
+    color: var(--texto-suave);
+    font-size: 14px;
+    margin: 6px 0 0 0;
+  }
+
+  main {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  footer {
+    padding: 16px 20px 22px 20px;
+  }
+
+  footer span {
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    color: var(--texto-suave);
+  }
+
+  /* Botão categoria (tela 1) */
+  .categoria {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--concreto-claro);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    padding: 18px 16px;
+    cursor: pointer;
+    transition: transform 0.08s ease, border-color 0.15s ease;
+    text-align: left;
+    color: var(--texto-claro);
+  }
+  .categoria:active { transform: scale(0.98); border-color: var(--amarelo-obra); }
+  .categoria .icone {
+    width: 44px; height: 44px; flex-shrink: 0;
+    border-radius: 8px; background: var(--concreto);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .categoria .info { flex: 1; }
+  .categoria .nome { font-size: 17px; font-weight: 600; margin: 0 0 2px 0; }
+  .categoria .desc { font-size: 13px; color: var(--texto-suave); margin: 0; }
+  .categoria .seta { color: var(--amarelo-obra); font-size: 20px; font-weight: 700; }
+
+  /* Item de serviço (tela 2) */
+  .item-servico {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--concreto-claro);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    color: var(--texto-claro);
+    text-align: left;
+  }
+  .item-servico:active { border-color: var(--amarelo-obra); }
+  .item-servico .nome { font-size: 15px; font-weight: 600; }
+  .item-servico .badge {
+    font-size: 12px;
+    color: var(--concreto);
+    background: var(--amarelo-obra);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-weight: 700;
+  }
+
+  /* Resumo do orçamento em andamento */
+  .resumo-box {
+    background: var(--concreto-claro);
+    border: 1px dashed var(--amarelo-obra);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .resumo-box .resumo-titulo {
+    color: var(--amarelo-obra);
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+  }
+  .resumo-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--texto-claro);
+    font-size: 14px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--linha);
+  }
+  .resumo-linha:last-child { border-bottom: none; }
+  .resumo-linha .remover {
+    background: none; border: none; color: var(--vermelho-remover);
+    font-size: 18px; cursor: pointer; padding: 0 4px;
+  }
+  .resumo-vazio { color: var(--texto-suave); font-size: 13px; text-align: center; padding: 6px 0; }
+
+  /* Botões */
+  .btn {
+    border: none;
+    border-radius: 10px;
+    padding: 15px 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-primario { background: var(--amarelo-obra); color: var(--concreto); }
+  .btn-primario:active { background: var(--amarelo-obra-escuro); }
+  .btn-secundario { background: transparent; border: 1px solid var(--linha); color: var(--texto-claro); }
+  .btn-bloco { width: 100%; }
+
+  /* Formulário de item (modal) */
+  .campo { display: flex; flex-direction: column; gap: 6px; }
+  .campo label { color: var(--texto-suave); font-size: 13px; font-weight: 600; }
+  .campo input {
+    background: var(--concreto);
+    border: 1px solid var(--linha);
+    border-radius: 8px;
+    padding: 13px 14px;
+    font-size: 16px;
+    color: var(--texto-claro);
+  }
+  .campo input:focus { outline: none; border-color: var(--amarelo-obra); }
+  .campo .unidade-label { color: var(--texto-suave); font-size: 12px; }
+
+  /* Relatório final */
+  .relatorio-item {
+    display: flex;
+    justify-content: space-between;
+    background: var(--concreto-claro);
+    border: 1px solid var(--linha);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--texto-claro);
+    font-size: 14px;
+  }
+  .relatorio-item .qtd { color: var(--texto-suave); font-size: 12px; }
+  .total-box {
+    background: var(--amarelo-obra);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .total-box .label { color: var(--concreto); font-size: 14px; font-weight: 700; }
+  .total-box .valor { color: var(--concreto); font-size: 22px; font-weight: 800; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== TELA 0: APRESENTAÇÃO (SPLASH) ===== -->
+  <section class="tela ativa" id="tela-splash">
+    <main style="justify-content:center; align-items:center; flex:1; gap:0; text-align:center;">
+      <div style="width:84px; height:84px; border-radius:18px; background:var(--concreto-claro); border:2px solid var(--amarelo-obra); display:flex; align-items:center; justify-content:center; font-size:40px; margin-bottom:22px;">🏗️</div>
+      <p style="color:var(--amarelo-obra); font-size:14px; font-weight:700; letter-spacing:0.06em; margin:0 0 6px 0;">ORÇAPRO</p>
+      <h1 style="color:var(--texto-claro); font-size:28px; font-weight:800; margin:0 0 6px 0; line-height:1.2;">Manutenção Predial</h1>
+      <p style="color:var(--texto-suave); font-size:14px; margin:0 0 44px 0;">Orçamentos rápidos e organizados</p>
+      <button class="btn btn-primario" style="padding:20px 42px; font-size:18px; border-radius:14px; box-shadow:0 8px 24px rgba(245,166,35,0.35);" onclick="novoOrcamento()">
+        Novo Orçamento
+      </button>
+    </main>
+    <footer><span>OrçaPro © Manutenção Predial</span></footer>
+  </section>
+
+  <!-- ===== TELA 0B: DADOS DO CLIENTE ===== -->
+  <section class="tela" id="tela-cliente">
+    <header>
+      <button class="voltar" onclick="irPara('tela-splash')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">NOVO ORÇAMENTO</p>
+        <h1>Dados do cliente</h1>
+        <p class="sub">Preencha as informações antes de começar</p>
+      </div>
+    </header>
+    <main>
+      <div class="campo">
+        <label>Nome do cliente</label>
+        <input type="text" id="cliente-nome" placeholder="Nome completo">
+      </div>
+      <div class="campo">
+        <label>Empresa (opcional)</label>
+        <input type="text" id="cliente-empresa" placeholder="Preencha se o serviço for para uma empresa">
+      </div>
+      <div class="campo">
+        <label>Telefone</label>
+        <input type="tel" id="cliente-telefone" inputmode="numeric" placeholder="(xx) xxxxx-xxxx" maxlength="15">
+      </div>
+      <div class="campo">
+        <label>Endereço / local do serviço</label>
+        <input type="text" id="cliente-endereco" placeholder="Rua, número, bairro">
+      </div>
+      <div class="campo">
+        <label>Observações (opcional)</label>
+        <input type="text" id="cliente-obs" placeholder="Detalhes adicionais">
+      </div>
+      <div class="campo" style="margin-top:10px; padding-top:14px; border-top:1px dashed var(--linha);">
+        <label>Nome da empresa</label>
+        <input type="text" id="empresa-nome" placeholder="Ex: Silva Manutenção Predial">
+      </div>
+      <div class="campo">
+        <label>CNPJ (opcional)</label>
+        <input type="text" id="empresa-cnpj" placeholder="00.000.000/0000-00">
+      </div>
+      <div class="campo">
+        <label>Seu nome</label>
+        <input type="text" id="meu-nome" placeholder="Quem está enviando o orçamento">
+      </div>
+      <div class="campo">
+        <label>Seu telefone (para receber o PDF)</label>
+        <input type="tel" id="meu-telefone" inputmode="numeric" placeholder="(xx) xxxxx-xxxx" maxlength="15">
+      </div>
+    </main>
+    <footer>
+      <button class="btn btn-primario btn-bloco" onclick="salvarCliente()">Seguir</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 1: HOME ===== -->
+  <section class="tela" id="tela-home">
+    <header>
+      <div class="titulos">
+        <p class="eyebrow">ORÇAMENTOS</p>
+        <h1>Escolha o serviço</h1>
+        <p class="sub" id="home-cliente-sub">Selecione a categoria para montar o orçamento</p>
+      </div>
+    </header>
+    <main id="lista-categorias"></main>
+    <main style="flex:0; padding-top:0;">
+      <div class="resumo-box">
+        <p class="resumo-titulo">ITENS NO ORÇAMENTO</p>
+        <div id="resumo-home"></div>
+      </div>
+    </main>
+    <footer>
+      <button class="btn btn-primario btn-bloco" onclick="finalizarOrcamento()">Finalizar orçamento</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 2: LISTA DE ITENS DA CATEGORIA ===== -->
+  <section class="tela" id="tela-itens">
+    <header>
+      <button class="voltar" onclick="irPara('tela-home')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow" id="itens-eyebrow">CATEGORIA</p>
+        <h1 id="itens-titulo">Serviços</h1>
+        <p class="sub">Toque num item para adicionar ao orçamento</p>
+      </div>
+    </header>
+    <main>
+      <div id="lista-itens"></div>
+    </main>
+    <footer>
+      <button class="btn btn-secundario btn-bloco" onclick="irPara('tela-home')">‹ Voltar ao início</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 3: FORMULÁRIO DE ITEM ===== -->
+  <section class="tela" id="tela-form">
+    <header>
+      <button class="voltar" onclick="irPara('tela-itens')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">ADICIONAR ITEM</p>
+        <h1 id="form-titulo">Item</h1>
+      </div>
+    </header>
+    <main>
+      <div class="campo" id="form-campo-nome" style="display:none;">
+        <label>Descrição do serviço</label>
+        <input type="text" id="form-nome-personalizado" placeholder="Ex: chuveiro, torneira, filtro...">
+      </div>
+      <div class="campo">
+        <label id="form-label-qtd">Quantidade</label>
+        <input type="number" inputmode="decimal" id="form-quantidade" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="campo">
+        <label id="form-label-mao">Valor da mão de obra (R$)</label>
+        <input type="number" inputmode="decimal" id="form-maodeobra" placeholder="0,00" min="0" step="0.01">
+      </div>
+      <div class="campo" id="form-preview-total" style="display:none;">
+        <label>Total do item</label>
+        <div class="campo" style="background: var(--concreto-claro); border-radius:8px; padding:13px 14px; color: var(--amarelo-obra); font-weight:700; font-size:16px;" id="form-total-valor">R$ 0,00</div>
+      </div>
+    </main>
+    <footer>
+      <button class="btn btn-primario btn-bloco" onclick="confirmarItem()">Adicionar item</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 3B: FORMULÁRIO POR MEDIDAS (GESSO) ===== -->
+  <section class="tela" id="tela-form-medidas">
+    <header>
+      <button class="voltar" onclick="irPara('tela-itens')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">ADICIONAR ITEM</p>
+        <h1 id="medidas-titulo">Item</h1>
+      </div>
+    </header>
+    <main>
+      <div id="medidas-campos"></div>
+
+      <div class="campo">
+        <label>Valor por m² (R$)</label>
+        <input type="number" inputmode="decimal" id="medidas-valor-m2" placeholder="0,00" min="0" step="0.01">
+      </div>
+
+      <div class="campo">
+        <label id="medidas-preview-label">Área / medida total</label>
+        <div style="background: var(--concreto-claro); border-radius:8px; padding:13px 14px; color: var(--texto-claro); font-weight:600;" id="medidas-preview-area">0,00 m²</div>
+      </div>
+
+      <div class="campo">
+        <label>Total do item</label>
+        <div style="background: var(--concreto-claro); border-radius:8px; padding:13px 14px; color: var(--amarelo-obra); font-weight:700; font-size:16px;" id="medidas-preview-total">R$ 0,00</div>
+      </div>
+    </main>
+    <footer>
+      <button class="btn btn-primario btn-bloco" onclick="confirmarItemMedidas()">Adicionar item</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 3C: LISTA DE MATERIAIS (PINTURA) ===== -->
+  <section class="tela" id="tela-materiais">
+    <header>
+      <button class="voltar" onclick="irPara('tela-itens')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">MATERIAIS</p>
+        <h1>Lista de materiais</h1>
+        <p class="sub">Digite os materiais necessários</p>
+      </div>
+    </header>
+    <main id="materiais-campos"></main>
+    <main style="flex:0; padding-top:0;">
+      <button class="btn btn-secundario btn-bloco" onclick="adicionarCamposMateriais(5)">+ Adicionar mais campos</button>
+    </main>
+    <footer>
+      <button class="btn btn-primario btn-bloco" onclick="gerarPDFMateriais()">📄 Finalizar e gerar PDF</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 4: RELATÓRIO FINAL ===== -->
+  <section class="tela" id="tela-relatorio">
+    <header>
+      <button class="voltar" onclick="irPara('tela-home')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">RELATÓRIO</p>
+        <h1>Resumo do orçamento</h1>
+        <p class="sub" id="relatorio-categoria">Resumo geral</p>
+      </div>
+    </header>
+    <main id="relatorio-lista"></main>
+    <main style="flex: 0; padding-top: 0;">
+      <div class="total-box">
+        <span class="label">TOTAL MÃO DE OBRA</span>
+        <span class="valor" id="relatorio-total">R$ 0,00</span>
+      </div>
+    </main>
+    <footer style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn btn-primario btn-bloco" onclick="gerarEEnviarPDF()">📄 Gerar e enviar PDF</button>
+      <button class="btn btn-secundario btn-bloco" id="btn-pdf-drywall" style="display:none;" onclick="gerarPDFMateriaisDrywall()">🧱 PDF de materiais (Dry Wall)</button>
+      <button class="btn btn-secundario btn-bloco" onclick="irPara('tela-home')">Início</button>
+    </footer>
+  </section>
+
+</div>
+
+<script>
+  /* ---------- DADOS ---------- */
+  const categorias = [
+    { id: 'eletrica',  nome: 'Elétrica',   desc: 'Tomadas, fiação, plafons',      icone: '⚡' },
+    { id: 'hidraulica',nome: 'Hidráulica', desc: 'Tubulações, registros, vazamentos', icone: '🔧' },
+    { id: 'gesso',     nome: 'Gesso',      desc: 'Parede, forro, sanca, moldura',  icone: '▦' },
+    { id: 'pintura',   nome: 'Pintura',    desc: 'Interna, externa, textura',      icone: '🖌' },
+    { id: 'alvenaria', nome: 'Alvenaria',  desc: 'Muros, paredes, reboco',         icone: '🧱' },
+  ];
+
+  // unidade: 'un' = unidades, 'm' = metros
+  const itensPorCategoria = {
+    eletrica: [
+      { id: 'tomadas',       nome: 'Troca de tomadas',               unidade: 'un' },
+      { id: 'interruptores', nome: 'Troca de interruptores',         unidade: 'un' },
+      { id: 'plafons',       nome: 'Troca de plafons',               unidade: 'un' },
+      { id: 'cabos',         nome: 'Passagem de cabos',               unidade: 'm', valorFixo: true },
+      { id: 'disj-mestre',   nome: 'Troca de disjuntor mestre',      unidade: 'un' },
+      { id: 'disjuntor',     nome: 'Troca de disjuntor',             unidade: 'un' },
+      { id: 'luminarias',    nome: 'Instalação de luminárias',       unidade: 'un' },
+      { id: 'vent-teto',     nome: 'Instalação de ventiladores de teto',   unidade: 'un' },
+      { id: 'vent-parede',   nome: 'Instalação de ventiladores de parede', unidade: 'un' },
+      { id: 'outros',        nome: 'Outros',                          unidade: 'un', personalizado: true },
+    ],
+    hidraulica: [
+      { id: 'torneira',      nome: 'Troca de torneira',              unidade: 'un' },
+      { id: 'sifao',         nome: 'Troca de sifão',                 unidade: 'un' },
+      { id: 'flexivel',      nome: 'Troca de flexível',               unidade: 'un' },
+      { id: 'valvula',       nome: 'Troca de reparo de válvula',     unidade: 'un' },
+      { id: 'encanamento',   nome: 'Reparo de encanamento embutido', unidade: 'un' },
+      { id: 'registros',     nome: 'Manutenção de registros',        unidade: 'un' },
+      { id: 'desentupimento',nome: 'Desentupimento',                 unidade: 'un' },
+      { id: 'outros-hidraulica', nome: 'Outros',                     unidade: 'un', personalizado: true },
+    ],
+    gesso: [
+      { id: 'parede',       nome: 'Parede de dry wall', tipo: 'area',
+        campos: [{ id: 'altura', label: 'Altura (m)' }, { id: 'largura', label: 'Largura (m)' }] },
+      { id: 'forro',        nome: 'Forro', tipo: 'area',
+        campos: [{ id: 'largura', label: 'Largura (m)' }, { id: 'comprimento', label: 'Comprimento (m)' }] },
+      { id: 'sanca',        nome: 'Sanca', tipo: 'linear-x2',
+        campos: [{ id: 'largura', label: 'Largura (m)' }, { id: 'comprimento', label: 'Comprimento (m)' }] },
+      { id: 'moldura',      nome: 'Moldura', tipo: 'linear-x2',
+        campos: [{ id: 'largura', label: 'Largura (m)' }, { id: 'comprimento', label: 'Comprimento (m)' }] },
+      { id: 'fechamento',   nome: 'Fechamento', tipo: 'linear-x2',
+        campos: [{ id: 'largura', label: 'Largura (m)' }, { id: 'comprimento', label: 'Comprimento (m)' }, { id: 'altura', label: 'Altura (m)' }] },
+      { id: 'revestimento', nome: 'Revestimento', tipo: 'area',
+        campos: [{ id: 'largura', label: 'Largura (m)' }, { id: 'comprimento', label: 'Comprimento (m)' }] },
+      { id: 'outros-gesso', nome: 'Outros', unidade: 'un', personalizado: true },
+    ],
+    pintura: [
+      { id: 'massa-teto',    nome: 'Massa corrida teto', tipo: 'area',
+        campos: [{ id: 'comprimento', label: 'Comprimento (m)' }, { id: 'largura', label: 'Largura (m)' }] },
+      { id: 'massa-parede',  nome: 'Massa corrida parede', tipo: 'area',
+        campos: [{ id: 'comprimento', label: 'Comprimento (m)' }, { id: 'altura', label: 'Altura (m)' }] },
+      { id: 'pintura-teto',  nome: 'Pintura teto', tipo: 'area',
+        campos: [{ id: 'comprimento', label: 'Comprimento (m)' }, { id: 'largura', label: 'Largura (m)' }] },
+      { id: 'pintura-parede',nome: 'Pintura parede', tipo: 'area',
+        campos: [{ id: 'comprimento', label: 'Comprimento (m)' }, { id: 'altura', label: 'Altura (m)' }] },
+      { id: 'pintura-chao',   nome: 'Pintura chão', tipo: 'area',
+        campos: [{ id: 'largura', label: 'Largura (m)' }, { id: 'comprimento', label: 'Comprimento (m)' }] },
+      { id: 'portas',         nome: 'Portas',    unidade: 'un' },
+      { id: 'janelas',        nome: 'Janelas',   unidade: 'un' },
+      { id: 'ferragens',      nome: 'Ferragens', unidade: 'un' },
+      { id: 'outros-pintura', nome: 'Outros', unidade: 'un', personalizado: true },
+      { id: 'materiais',      nome: 'Materiais', tipo: 'lista-materiais' },
+    ],
+    alvenaria: [
+      { id: 'revestimento-piso', nome: 'Reparo revestimento (piso/azulejo)', unidade: 'un' },
+      { id: 'reparo-parede', nome: 'Reparo em parede', tipo: 'direto',
+        campos: [{ id: 'largura', label: 'Largura (m)', inputType: 'number' }, { id: 'comprimento', label: 'Comprimento (m)', inputType: 'number' }] },
+      { id: 'reparo-telhado', nome: 'Reparo em telhado', tipo: 'direto',
+        campos: [{ id: 'descricao', label: 'Descrição', inputType: 'text' }] },
+      { id: 'outros-alvenaria', nome: 'Outros', tipo: 'direto',
+        campos: [{ id: 'descricao', label: 'Descrição', inputType: 'text' }] },
+    ],
+  };
+
+  /* ---------- CONSUMO DE MATERIAIS: DRY WALL (Parede e Forro) ----------
+     Valores médios de mercado (parede simples, 1 chapa por lado, montante a cada 60cm).
+     Itens vendidos em barra (3m) ou placa (2,16 m²) são convertidos para quantidade
+     de itens inteiros, arredondando sempre para cima. */
+  const TAMANHO_BARRA_M = 3;
+  const TAMANHO_PLACA_M2 = 2.16;
+  const ESPACAMENTO_MONTANTE = 0.6;
+
+  const MATERIAIS_DRYWALL = {
+    parede: {
+      titulo: 'Parede de dry wall',
+      itens: [
+        { nome: 'Chapa de drywall', consumoPorM2: 2.16, tamanhoUnidade: TAMANHO_PLACA_M2, unidade: 'placas' },
+        { nome: 'Parafuso GN25', consumoPorM2: 30, tamanhoUnidade: null, unidade: 'un' },
+        { nome: 'Parafuso metal-metal', consumoPorM2: 8, tamanhoUnidade: null, unidade: 'un' },
+        { nome: 'Massa para juntas', consumoPorM2: 0.6, tamanhoUnidade: null, unidade: 'kg', decimal: true },
+        { nome: 'Fita de papel', consumoPorM2: 2.2, tamanhoUnidade: null, unidade: 'm', decimal: true },
+      ],
+    },
+    forro: {
+      titulo: 'Forro de dry wall',
+      itens: [
+        { nome: 'Chapa de drywall', consumoPorM2: 1.08, tamanhoUnidade: TAMANHO_PLACA_M2, unidade: 'placas' },
+        { nome: 'Pendural regulável', consumoPorM2: 0.9, tamanhoUnidade: null, unidade: 'un' },
+        { nome: 'Parafuso GN25', consumoPorM2: 18, tamanhoUnidade: null, unidade: 'un' },
+        { nome: 'Massa para juntas', consumoPorM2: 0.5, tamanhoUnidade: null, unidade: 'kg', decimal: true },
+        { nome: 'Fita de papel', consumoPorM2: 1.6, tamanhoUnidade: null, unidade: 'm', decimal: true },
+      ],
+    },
+  };
+
+  // Montante e Guia da parede são calculados pela geometria real (largura/altura de cada parede),
+  // não por uma proporção genérica de m² — ver explicação no calcularMateriaisDrywall().
+  function calcularMontanteEGuiaParede() {
+    const paredes = orcamentoAtual.filter(it => it.categoria === 'Gesso' && it.nome === 'Parede de dry wall');
+    let totalLinearMontante = 0;
+    let totalPerimetroGuia = 0;
+
+    paredes.forEach(p => {
+      const largura = p.largura || 0;
+      const altura = p.altura || 0;
+      if (largura <= 0 || altura <= 0) return;
+
+      // Guia = perímetro da parede (chão + teto + as duas pontas)
+      totalPerimetroGuia += 2 * (largura + altura);
+
+      // Montante = postes a cada 60cm ao longo da largura; as duas pontas já são
+      // cobertas pela guia lateral, então contamos só os postes intermediários
+      const vaos = Math.ceil(largura / ESPACAMENTO_MONTANTE);
+      const postesIntermediarios = Math.max(vaos - 1, 0);
+      totalLinearMontante += postesIntermediarios * altura;
+    });
+
+    return {
+      montanteBarras: Math.ceil(totalLinearMontante / TAMANHO_BARRA_M),
+      guiaBarras: Math.ceil(totalPerimetroGuia / TAMANHO_BARRA_M),
+    };
+  }
+
+  // Canaleta F530 do forro: barras a cada 60cm ao longo da largura, cada uma
+  // percorrendo todo o comprimento do forro.
+  function calcularCanaletaF530Forro() {
+    const forros = orcamentoAtual.filter(it => it.categoria === 'Gesso' && it.nome === 'Forro');
+    let totalLinearCanaleta = 0;
+
+    forros.forEach(f => {
+      const largura = f.largura || 0;
+      const comprimento = f.comprimento || 0;
+      if (largura <= 0 || comprimento <= 0) return;
+
+      const canaletas = Math.ceil(largura / ESPACAMENTO_MONTANTE) + 1;
+      totalLinearCanaleta += canaletas * comprimento;
+    });
+
+    return Math.ceil(totalLinearCanaleta / TAMANHO_BARRA_M);
+  }
+
+  function calcularMateriaisDrywall() {
+    const areaParede = orcamentoAtual
+      .filter(it => it.categoria === 'Gesso' && it.nome === 'Parede de dry wall')
+      .reduce((soma, it) => soma + it.quantidade, 0);
+    const areaForro = orcamentoAtual
+      .filter(it => it.categoria === 'Gesso' && it.nome === 'Forro')
+      .reduce((soma, it) => soma + it.quantidade, 0);
+
+    const resultado = [];
+    [['parede', areaParede], ['forro', areaForro]].forEach(([chave, area]) => {
+      if (area > 0) {
+        const tabela = MATERIAIS_DRYWALL[chave];
+        const itensCalculados = tabela.itens.map(item => {
+          const valorNecessario = item.consumoPorM2 * area;
+          let quantidade;
+          if (item.tamanhoUnidade) {
+            // Vendido em barra/placa: converte para quantidade de itens inteiros
+            quantidade = Math.ceil(valorNecessario / item.tamanhoUnidade);
+          } else if (item.decimal) {
+            quantidade = Math.round(valorNecessario * 100) / 100;
+          } else {
+            quantidade = Math.ceil(valorNecessario);
+          }
+          return { nome: item.nome, quantidade: quantidade, unidade: item.unidade };
+        });
+
+        // Insere Montante e Guia (calculados pela geometria real) logo após a Chapa
+        if (chave === 'parede') {
+          const { montanteBarras, guiaBarras } = calcularMontanteEGuiaParede();
+          itensCalculados.splice(1, 0,
+            { nome: 'Montante', quantidade: montanteBarras, unidade: 'barras' },
+            { nome: 'Guia', quantidade: guiaBarras, unidade: 'barras' }
+          );
+        }
+
+        // Insere Canaleta F530 (calculada pela geometria real) logo após a Chapa
+        if (chave === 'forro') {
+          const canaletaBarras = calcularCanaletaF530Forro();
+          itensCalculados.splice(1, 0,
+            { nome: 'Canaleta F530', quantidade: canaletaBarras, unidade: 'barras' }
+          );
+        }
+
+        resultado.push({ titulo: tabela.titulo, area, itens: itensCalculados });
+      }
+    });
+    return resultado;
+  }
+
+  /* ---------- ESTADO ---------- */
+  let categoriaAtual = null;
+  let itemSelecionado = null;
+  let camposX2Ativos = new Set();
+  let orcamentoAtual = []; // { categoria, nome, quantidade, unidade, maoDeObraUnit, valorFixo, total }
+  let dadosCliente = { nome: '', empresa: '', telefone: '', endereco: '', obs: '' };
+  let meuTelefone = '';
+  let empresaNome = '';
+  let empresaCnpj = '';
+  let meuNome = '';
+
+  /* ---------- NAVEGAÇÃO ---------- */
+  function irPara(idTela) {
+    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+    document.getElementById(idTela).classList.add('ativa');
+  }
+
+  /* ---------- TELA 0: SPLASH / NOVO ORÇAMENTO ---------- */
+  function novoOrcamento() {
+    orcamentoAtual = [];
+    dadosCliente = { nome: '', empresa: '', telefone: '', endereco: '', obs: '' };
+    document.getElementById('cliente-nome').value = '';
+    document.getElementById('cliente-empresa').value = '';
+    document.getElementById('cliente-telefone').value = '';
+    document.getElementById('cliente-endereco').value = '';
+    document.getElementById('cliente-obs').value = '';
+    document.getElementById('meu-telefone').value = meuTelefone;
+    document.getElementById('empresa-nome').value = empresaNome;
+    document.getElementById('empresa-cnpj').value = empresaCnpj;
+    document.getElementById('meu-nome').value = meuNome;
+    irPara('tela-cliente');
+  }
+
+  function aplicarMascaraTelefone(input) {
+    input.addEventListener('input', function () {
+      let v = this.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 10) {
+        v = v.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+      } else if (v.length > 5) {
+        v = v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+      } else if (v.length > 2) {
+        v = v.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+      } else if (v.length > 0) {
+        v = v.replace(/(\d{0,2})/, '($1');
+      }
+      this.value = v;
+    });
+  }
+  aplicarMascaraTelefone(document.getElementById('cliente-telefone'));
+  aplicarMascaraTelefone(document.getElementById('meu-telefone'));
+
+  document.getElementById('empresa-cnpj').addEventListener('input', function () {
+    let d = this.value.replace(/\D/g, '').slice(0, 14);
+    let v = d;
+    if (d.length > 12) {
+      v = d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/, '$1.$2.$3/$4-$5');
+    } else if (d.length > 8) {
+      v = d.replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/, '$1.$2.$3/$4');
+    } else if (d.length > 5) {
+      v = d.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
+    } else if (d.length > 2) {
+      v = d.replace(/(\d{2})(\d{1,3})/, '$1.$2');
+    }
+    this.value = v;
+  });
+
+  function salvarCliente() {
+    dadosCliente.nome = document.getElementById('cliente-nome').value.trim();
+    dadosCliente.empresa = document.getElementById('cliente-empresa').value.trim();
+    dadosCliente.telefone = document.getElementById('cliente-telefone').value.trim();
+    dadosCliente.endereco = document.getElementById('cliente-endereco').value.trim();
+    dadosCliente.obs = document.getElementById('cliente-obs').value.trim();
+    meuTelefone = document.getElementById('meu-telefone').value.trim();
+    empresaNome = document.getElementById('empresa-nome').value.trim();
+    empresaCnpj = document.getElementById('empresa-cnpj').value.trim();
+    meuNome = document.getElementById('meu-nome').value.trim();
+    renderizarResumo();
+    irPara('tela-home');
+  }
+
+  /* ---------- TELA 1: HOME ---------- */
+  const containerCategorias = document.getElementById('lista-categorias');
+  categorias.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'categoria';
+    btn.innerHTML = `
+      <div class="icone">${cat.icone}</div>
+      <div class="info">
+        <p class="nome">${cat.nome}</p>
+        <p class="desc">${cat.desc}</p>
+      </div>
+      <div class="seta">›</div>
+    `;
+    btn.addEventListener('click', () => abrirCategoria(cat.id));
+    containerCategorias.appendChild(btn);
+  });
+
+  function abrirCategoria(id) {
+    const itens = itensPorCategoria[id];
+    if (!itens) {
+      alert('Essa categoria ainda será construída nas próximas telas.');
+      return;
+    }
+    categoriaAtual = categorias.find(c => c.id === id);
+    renderizarTelaItens();
+    irPara('tela-itens');
+  }
+
+  /* ---------- TELA 2: LISTA DE ITENS ---------- */
+  function renderizarTelaItens() {
+    document.getElementById('itens-eyebrow').textContent = categoriaAtual.nome.toUpperCase();
+    document.getElementById('itens-titulo').textContent = categoriaAtual.nome;
+
+    const lista = document.getElementById('lista-itens');
+    lista.innerHTML = '';
+    itensPorCategoria[categoriaAtual.id].forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'item-servico';
+      const badge = item.tipo === 'lista-materiais' ? 'lista' : (item.tipo === 'direto' ? 'valor' : (item.tipo ? 'm²' : (item.unidade === 'm' ? 'metros' : 'unid.')));
+      btn.innerHTML = `
+        <span class="nome">${item.nome}</span>
+        <span class="badge">${badge}</span>
+      `;
+      btn.addEventListener('click', () => {
+        if (item.tipo === 'lista-materiais') abrirTelaMateriais();
+        else if (item.tipo) abrirFormularioMedidas(item);
+        else abrirFormulario(item);
+      });
+      lista.appendChild(btn);
+    });
+  }
+
+  function renderizarResumo() {
+    const subCliente = document.getElementById('home-cliente-sub');
+    if (subCliente) {
+      subCliente.textContent = dadosCliente.nome
+        ? `Cliente: ${dadosCliente.nome}`
+        : 'Selecione a categoria para montar o orçamento';
+    }
+
+    const resumo = document.getElementById('resumo-home');
+    if (orcamentoAtual.length === 0) {
+      resumo.innerHTML = '<p class="resumo-vazio">Nenhum item ainda</p>';
+      return;
+    }
+    resumo.innerHTML = '';
+    orcamentoAtual.forEach((it, idx) => {
+      const linha = document.createElement('div');
+      linha.className = 'resumo-linha';
+      const unidadeTxt = it.unidade === 'm' ? 'm' : (it.unidade === 'm²' ? 'm²' : 'un');
+      const qtdTexto = it.unidade === '' ? '' : `${it.quantidade.toFixed(2)} ${unidadeTxt} · `;
+      linha.innerHTML = `
+        <span>[${it.categoria}] ${it.nome} — ${qtdTexto}R$ ${it.total.toFixed(2)}</span>
+        <button class="remover" onclick="removerItem(${idx})">✕</button>
+      `;
+      resumo.appendChild(linha);
+    });
+  }
+
+  function removerItem(idx) {
+    orcamentoAtual.splice(idx, 1);
+    renderizarResumo();
+  }
+
+  /* ---------- TELA 3: FORMULÁRIO ---------- */
+  function abrirFormulario(item) {
+    itemSelecionado = item;
+    document.getElementById('form-titulo').textContent = item.nome;
+    document.getElementById('form-campo-nome').style.display = item.personalizado ? 'flex' : 'none';
+    document.getElementById('form-nome-personalizado').value = '';
+    document.getElementById('form-label-qtd').textContent =
+      item.unidade === 'm' ? 'Quantidade (metros)' : 'Quantidade (unidades)';
+    document.getElementById('form-label-mao').textContent =
+      item.valorFixo ? 'Valor da mão de obra - total (R$)' : 'Valor da mão de obra - por unidade (R$)';
+    document.getElementById('form-quantidade').value = '';
+    document.getElementById('form-maodeobra').value = '';
+    document.getElementById('form-preview-total').style.display = item.valorFixo ? 'none' : 'flex';
+    atualizarPreviewTotal();
+    irPara('tela-form');
+  }
+
+  function atualizarPreviewTotal() {
+    const qtd = parseFloat(document.getElementById('form-quantidade').value) || 0;
+    const valorUnit = parseFloat(document.getElementById('form-maodeobra').value) || 0;
+    const total = qtd * valorUnit;
+    document.getElementById('form-total-valor').textContent =
+      'R$ ' + total.toFixed(2).replace('.', ',');
+  }
+
+  document.getElementById('form-quantidade').addEventListener('input', atualizarPreviewTotal);
+  document.getElementById('form-maodeobra').addEventListener('input', atualizarPreviewTotal);
+
+  function confirmarItem() {
+    const qtd = parseFloat(document.getElementById('form-quantidade').value);
+    const valor = parseFloat(document.getElementById('form-maodeobra').value);
+    const nomePersonalizado = document.getElementById('form-nome-personalizado').value.trim();
+
+    if (itemSelecionado.personalizado && !nomePersonalizado) {
+      alert('Informe o nome do item a ser instalado.');
+      return;
+    }
+    if (!qtd || qtd <= 0) { alert('Informe a quantidade.'); return; }
+    if (isNaN(valor) || valor < 0) { alert('Informe o valor da mão de obra.'); return; }
+
+    const totalItem = itemSelecionado.valorFixo ? valor : (qtd * valor);
+    const nomeFinal = itemSelecionado.personalizado
+      ? `${itemSelecionado.nome}: ${nomePersonalizado}`
+      : itemSelecionado.nome;
+
+    orcamentoAtual.push({
+      categoria: categoriaAtual.nome,
+      nome: nomeFinal,
+      quantidade: qtd,
+      unidade: itemSelecionado.unidade,
+      maoDeObraUnit: valor,
+      valorFixo: !!itemSelecionado.valorFixo,
+      total: totalItem,
+    });
+
+    renderizarResumo();
+    irPara('tela-itens');
+  }
+
+  /* ---------- TELA 3B: FORMULÁRIO POR MEDIDAS (GESSO) ---------- */
+  function abrirFormularioMedidas(item) {
+    itemSelecionado = item;
+    camposX2Ativos = new Set();
+    document.getElementById('medidas-titulo').textContent = item.nome;
+
+    const container = document.getElementById('medidas-campos');
+    container.innerHTML = '';
+    item.campos.forEach(campo => {
+      const div = document.createElement('div');
+      div.className = 'campo';
+      const tipoInput = campo.inputType === 'text' ? 'text' : 'number';
+      const inputmodeAttr = tipoInput === 'text' ? '' : 'inputmode="decimal"';
+      if (item.tipo === 'linear-x2') {
+        div.innerHTML = `
+          <label>${campo.label}</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" inputmode="decimal" class="medida-input" data-campo="${campo.id}" placeholder="0,00" min="0" step="0.01" style="flex:1;">
+            <button type="button" class="btn btn-secundario x2-toggle" data-campo="${campo.id}" style="flex:0 0 56px; padding:0; font-size:13px;">X2</button>
+          </div>
+        `;
+      } else {
+        div.innerHTML = `
+          <label>${campo.label}</label>
+          <input type="${tipoInput}" ${inputmodeAttr} class="medida-input" data-campo="${campo.id}" placeholder="${tipoInput === 'text' ? 'Digite aqui...' : '0,00'}" ${tipoInput === 'number' ? 'min="0" step="0.01"' : ''}>
+        `;
+      }
+      container.appendChild(div);
+    });
+    container.querySelectorAll('.medida-input').forEach(inp =>
+      inp.addEventListener('input', atualizarPreviewMedidas)
+    );
+    container.querySelectorAll('.x2-toggle').forEach(btn =>
+      btn.addEventListener('click', () => alternarX2Campo(btn.dataset.campo, btn))
+    );
+
+    document.getElementById('medidas-preview-label').textContent =
+      item.tipo === 'area' ? 'Área total' : (item.tipo === 'direto' ? 'Resumo' : 'Medida total');
+    document.getElementById('medidas-valor-m2').value = '';
+
+    // Rótulo do campo de valor: "por m²" para cálculos de área, "total" para itens diretos
+    const campoValorLabel = document.getElementById('medidas-valor-m2').previousElementSibling;
+    if (campoValorLabel) {
+      campoValorLabel.textContent = item.tipo === 'direto' ? 'Valor (R$)' : 'Valor por m² (R$)';
+    }
+
+    // Esconde a prévia de área/medida para itens diretos (não faz sentido mostrar)
+    document.getElementById('medidas-preview-area').parentElement.style.display =
+      item.tipo === 'direto' ? 'none' : 'flex';
+
+    atualizarPreviewMedidas();
+    irPara('tela-form-medidas');
+  }
+
+  function alternarX2Campo(campoId, btn) {
+    if (camposX2Ativos.has(campoId)) {
+      camposX2Ativos.delete(campoId);
+      btn.style.borderColor = 'var(--linha)';
+      btn.style.color = 'var(--texto-claro)';
+    } else {
+      camposX2Ativos.add(campoId);
+      btn.style.borderColor = 'var(--amarelo-obra)';
+      btn.style.color = 'var(--amarelo-obra)';
+    }
+    atualizarPreviewMedidas();
+  }
+
+  function calcularMedidas() {
+    if (itemSelecionado.tipo === 'direto') {
+      const valor = parseFloat(document.getElementById('medidas-valor-m2').value) || 0;
+      return { quantidade: 1, total: valor, valorM2: valor };
+    }
+
+    const valores = itemSelecionado.campos.map(campo => {
+      const input = document.querySelector(`.medida-input[data-campo="${campo.id}"]`);
+      const v = parseFloat(input.value) || 0;
+      return camposX2Ativos.has(campo.id) ? v * 2 : v;
+    });
+    const valorM2 = parseFloat(document.getElementById('medidas-valor-m2').value) || 0;
+
+    let quantidade;
+    if (itemSelecionado.tipo === 'area') {
+      quantidade = valores[0] * valores[1];
+    } else {
+      // linear-x2: soma os campos (cada um já dobrado se seu X2 estiver ativo)
+      quantidade = valores.reduce((soma, v) => soma + v, 0);
+    }
+    return { quantidade, total: quantidade * valorM2, valorM2 };
+  }
+
+  function atualizarPreviewMedidas() {
+    const { total } = calcularMedidas();
+    if (itemSelecionado.tipo !== 'direto') {
+      const { quantidade } = calcularMedidas();
+      const sufixo = itemSelecionado.tipo === 'area' ? ' m²' : ' m';
+      document.getElementById('medidas-preview-area').textContent =
+        quantidade.toFixed(2).replace('.', ',') + sufixo;
+    }
+    document.getElementById('medidas-preview-total').textContent =
+      'R$ ' + total.toFixed(2).replace('.', ',');
+  }
+
+  document.getElementById('medidas-valor-m2').addEventListener('input', atualizarPreviewMedidas);
+
+  function confirmarItemMedidas() {
+    const { quantidade, total, valorM2 } = calcularMedidas();
+
+    if (itemSelecionado.tipo === 'direto') {
+      if (!valorM2 || valorM2 <= 0) { alert('Informe o valor.'); return; }
+
+      const detalhes = itemSelecionado.campos
+        .map(campo => {
+          const input = document.querySelector(`.medida-input[data-campo="${campo.id}"]`);
+          const v = input.value.trim();
+          return v ? `${campo.label}: ${v}` : null;
+        })
+        .filter(Boolean)
+        .join(', ');
+
+      orcamentoAtual.push({
+        categoria: categoriaAtual.nome,
+        nome: detalhes ? `${itemSelecionado.nome} (${detalhes})` : itemSelecionado.nome,
+        quantidade: 1,
+        unidade: '',
+        maoDeObraUnit: valorM2,
+        valorFixo: true,
+        total: total,
+      });
+
+      renderizarResumo();
+      irPara('tela-itens');
+      return;
+    }
+
+    if (quantidade <= 0) { alert('Informe as medidas do item.'); return; }
+    if (!valorM2 || valorM2 <= 0) { alert('Informe o valor por m².'); return; }
+
+    const novoItem = {
+      categoria: categoriaAtual.nome,
+      nome: itemSelecionado.nome,
+      quantidade: quantidade,
+      unidade: itemSelecionado.tipo === 'area' ? 'm²' : 'm',
+      maoDeObraUnit: valorM2,
+      valorFixo: false,
+      total: total,
+    };
+
+    // Guarda altura/largura separadas para o cálculo de materiais da Parede de dry wall
+    if (itemSelecionado.id === 'parede') {
+      const inputAltura = document.querySelector('.medida-input[data-campo="altura"]');
+      const inputLargura = document.querySelector('.medida-input[data-campo="largura"]');
+      novoItem.altura = parseFloat(inputAltura.value) || 0;
+      novoItem.largura = parseFloat(inputLargura.value) || 0;
+    }
+
+    // Guarda largura/comprimento separados para o cálculo da Canaleta F530 do Forro
+    if (itemSelecionado.id === 'forro') {
+      const inputLargura = document.querySelector('.medida-input[data-campo="largura"]');
+      const inputComprimento = document.querySelector('.medida-input[data-campo="comprimento"]');
+      novoItem.largura = parseFloat(inputLargura.value) || 0;
+      novoItem.comprimento = parseFloat(inputComprimento.value) || 0;
+    }
+
+    orcamentoAtual.push(novoItem);
+
+    renderizarResumo();
+    irPara('tela-itens');
+  }
+
+  /* ---------- TELA 4: RELATÓRIO ---------- */
+  function finalizarOrcamento() {
+    if (orcamentoAtual.length === 0) {
+      alert('Adicione ao menos um item antes de finalizar.');
+      return;
+    }
+
+    const categoriasEnvolvidas = [...new Set(orcamentoAtual.map(it => it.categoria))];
+    document.getElementById('relatorio-categoria').textContent = categoriasEnvolvidas.join(' · ');
+
+    const lista = document.getElementById('relatorio-lista');
+    lista.innerHTML = '';
+    let total = 0;
+
+    if (dadosCliente.nome || dadosCliente.empresa || dadosCliente.telefone || dadosCliente.endereco) {
+      const clienteBox = document.createElement('div');
+      clienteBox.className = 'resumo-box';
+      clienteBox.style.marginBottom = '4px';
+      clienteBox.innerHTML = `
+        <p class="resumo-titulo">DADOS DO CLIENTE</p>
+        ${dadosCliente.nome ? `<div class="resumo-linha"><span>${dadosCliente.nome}</span></div>` : ''}
+        ${dadosCliente.empresa ? `<div class="resumo-linha"><span>Empresa: ${dadosCliente.empresa}</span></div>` : ''}
+        ${dadosCliente.telefone ? `<div class="resumo-linha"><span>${dadosCliente.telefone}</span></div>` : ''}
+        ${dadosCliente.endereco ? `<div class="resumo-linha"><span>${dadosCliente.endereco}</span></div>` : ''}
+        ${dadosCliente.obs ? `<div class="resumo-linha"><span>${dadosCliente.obs}</span></div>` : ''}
+      `;
+      lista.appendChild(clienteBox);
+    }
+
+    categoriasEnvolvidas.forEach(cat => {
+      const tituloCat = document.createElement('p');
+      tituloCat.className = 'resumo-titulo';
+      tituloCat.style.marginTop = '4px';
+      tituloCat.textContent = cat.toUpperCase();
+      lista.appendChild(tituloCat);
+
+      orcamentoAtual.filter(it => it.categoria === cat).forEach(it => {
+        total += it.total;
+        const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
+        const linhaDetalhe = it.unidade === ''
+          ? ''
+          : `${it.quantidade.toFixed(2)} ${unidadeTxt}${it.valorFixo ? '' : ' × R$ ' + it.maoDeObraUnit.toFixed(2)}`;
+        const linha = document.createElement('div');
+        linha.className = 'relatorio-item';
+        linha.innerHTML = `
+          <div>
+            <div>${it.nome}</div>
+            <div class="qtd">${linhaDetalhe}</div>
+          </div>
+          <div>R$ ${it.total.toFixed(2)}</div>
+        `;
+        lista.appendChild(linha);
+      });
+    });
+
+    const materiaisDrywall = calcularMateriaisDrywall();
+    document.getElementById('btn-pdf-drywall').style.display = materiaisDrywall.length > 0 ? 'block' : 'none';
+    materiaisDrywall.forEach(bloco => {
+      const box = document.createElement('div');
+      box.className = 'resumo-box';
+      box.style.marginTop = '4px';
+      let linhasHtml = bloco.itens.map(item =>
+        `<div class="resumo-linha"><span>${item.nome}</span><span>${item.quantidade} ${item.unidade}</span></div>`
+      ).join('');
+      box.innerHTML = `
+        <p class="resumo-titulo">MATERIAIS ESTIMADOS — ${bloco.titulo.toUpperCase()} (${bloco.area.toFixed(2)} m²)</p>
+        ${linhasHtml}
+        <p style="color:var(--texto-suave); font-size:11px; margin:8px 0 0 0;">Estimativa de mercado — confirme com seu fornecedor.</p>
+      `;
+      lista.appendChild(box);
+    });
+
+    document.getElementById('relatorio-total').textContent =
+      'R$ ' + total.toFixed(2).replace('.', ',');
+
+    irPara('tela-relatorio');
+  }
+
+  /* ---------- GERAR E ENVIAR PDF ---------- */
+  /* ---------- TELA 3C: LISTA DE MATERIAIS (PINTURA) ---------- */
+  function abrirTelaMateriais() {
+    const container = document.getElementById('materiais-campos');
+    container.innerHTML = '';
+    adicionarCamposMateriais(5);
+    irPara('tela-materiais');
+  }
+
+  function adicionarCamposMateriais(qtd) {
+    const container = document.getElementById('materiais-campos');
+    for (let i = 0; i < qtd; i++) {
+      const div = document.createElement('div');
+      div.className = 'campo';
+      div.innerHTML = `<input type="text" class="material-input" placeholder="Ex: 2 latas de tinta branca 18L">`;
+      container.appendChild(div);
+    }
+  }
+
+  /* ---------- MARCA D'ÁGUA (usada em todos os PDFs) ---------- */
+  function adicionarMarcaDagua(doc) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const totalPaginas = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPaginas; p++) {
+      doc.setPage(p);
+      doc.setFontSize(7);
+      doc.setFont(undefined, 'normal');
+      // Cantos superiores (sobre a faixa escura do cabeçalho)
+      doc.setTextColor(255, 255, 255);
+      doc.text('OrçaPro', 4, 6);
+      doc.text('OrçaPro', pageWidth - 4, 6, { align: 'right' });
+      // Cantos inferiores (fundo branco)
+      doc.setTextColor(200, 200, 200);
+      doc.text('OrçaPro', 4, pageHeight - 3);
+      doc.text('OrçaPro', pageWidth - 4, pageHeight - 3, { align: 'right' });
+    }
+    doc.setTextColor(0, 0, 0);
+  }
+
+  function gerarPDFMateriaisDrywall() {
+    const materiaisDrywall = calcularMateriaisDrywall();
+    if (materiaisDrywall.length === 0) {
+      alert('Adicione itens de Parede de dry wall ou Forro ao orçamento para calcular os materiais.');
+      return;
+    }
+
+    try {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Não foi possível carregar a biblioteca de PDF. Verifique sua conexão com a internet e tente novamente.');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margemEsq = 14;
+      const margemDir = pageWidth - 14;
+      const centro = pageWidth / 2;
+
+      const CONCRETO = [43, 47, 51];
+      const AMARELO = [245, 166, 35];
+      const CINZA_CLARO = [244, 244, 244];
+      const CINZA_TEXTO = [110, 110, 110];
+      const PRETO = [25, 25, 25];
+
+      doc.setFillColor(...CONCRETO);
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      doc.setFillColor(...AMARELO);
+      doc.rect(0, 30, pageWidth, 1.5, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(16);
+      doc.text(empresaNome || 'OrçaPro - Manutenção Predial', centro, 14, { align: 'center' });
+      doc.setFont(undefined, 'normal');
+      if (empresaCnpj) {
+        doc.setFontSize(9);
+        doc.setTextColor(210, 210, 210);
+        doc.text('CNPJ: ' + empresaCnpj, centro, 21, { align: 'center' });
+      }
+
+      let y = 42;
+      const hoje = new Date();
+      const dataEmissao = String(hoje.getDate()).padStart(2, '0') + '/' +
+        String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+      doc.setFontSize(9);
+      doc.setTextColor(...CINZA_TEXTO);
+      doc.text('MATERIAIS DRY WALL', margemEsq, y);
+      doc.text('Emitido em: ' + dataEmissao, margemDir, y, { align: 'right' });
+      doc.setTextColor(...PRETO);
+      y += 12;
+
+      materiaisDrywall.forEach(bloco => {
+        if (y > 260) { doc.addPage(); y = 20; }
+
+        doc.setFillColor(...AMARELO);
+        doc.rect(margemEsq, y, margemDir - margemEsq, 7, 'F');
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...CONCRETO);
+        doc.text(`${bloco.titulo.toUpperCase()} (${bloco.area.toFixed(2)} m²)`, margemEsq + 3, y + 5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...PRETO);
+        y += 11;
+
+        let zebra = false;
+        bloco.itens.forEach(item => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          if (zebra) {
+            doc.setFillColor(...CINZA_CLARO);
+            doc.rect(margemEsq, y - 4.5, margemDir - margemEsq, 7, 'F');
+          }
+          zebra = !zebra;
+          doc.setFontSize(10);
+          doc.text(item.nome, margemEsq + 2, y);
+          doc.text(`${item.quantidade} ${item.unidade}`, margemDir - 2, y, { align: 'right' });
+          y += 7;
+        });
+
+        y += 3;
+        doc.setFontSize(8);
+        doc.setTextColor(...CINZA_TEXTO);
+        doc.text('Estimativa de mercado — confirme com seu fornecedor.', margemEsq + 2, y);
+        doc.setTextColor(...PRETO);
+        y += 8;
+      });
+
+      const totalPaginas = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPaginas; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(210, 210, 210);
+        doc.line(margemEsq, pageHeight - 22, margemDir, pageHeight - 22);
+        doc.setFontSize(8);
+        doc.setTextColor(...CINZA_TEXTO);
+        doc.text('Página ' + p + ' de ' + totalPaginas, margemEsq, pageHeight - 15);
+
+        if (p === totalPaginas && (meuNome || meuTelefone)) {
+          let yRodape = pageHeight - 16;
+          doc.setFontSize(9);
+          doc.setTextColor(...PRETO);
+          if (meuNome) { doc.text('Enviado por: ' + meuNome, margemDir, yRodape, { align: 'right' }); yRodape += 5; }
+          if (meuTelefone) {
+            doc.setFontSize(8);
+            doc.setTextColor(...CINZA_TEXTO);
+            doc.text(meuTelefone, margemDir, yRodape, { align: 'right' });
+          }
+        }
+      }
+
+      const nomeArquivo = 'materiais-drywall.pdf';
+      adicionarMarcaDagua(doc);
+      const blob = doc.output('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        navigator.share({
+          files: [arquivo],
+          title: 'Materiais Dry Wall',
+          text: 'Segue a lista de materiais de dry wall em anexo.',
+        }).catch(() => doc.save(nomeArquivo));
+      } else {
+        doc.save(nomeArquivo);
+        alert('Seu navegador não suporta compartilhamento direto. O PDF foi baixado — envie manualmente pelo WhatsApp.');
+      }
+    } catch (erro) {
+      console.error(erro);
+      alert('Ocorreu um erro ao gerar o PDF: ' + erro.message);
+    }
+  }
+
+  function gerarPDFMateriais() {
+    const valores = Array.from(document.querySelectorAll('.material-input'))
+      .map(inp => inp.value.trim())
+      .filter(v => v.length > 0);
+
+    if (valores.length === 0) {
+      alert('Preencha ao menos um material antes de finalizar.');
+      return;
+    }
+
+    try {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Não foi possível carregar a biblioteca de PDF. Verifique sua conexão com a internet e tente novamente.');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margemEsq = 14;
+      const margemDir = pageWidth - 14;
+      const centro = pageWidth / 2;
+
+      const CONCRETO = [43, 47, 51];
+      const AMARELO = [245, 166, 35];
+      const CINZA_CLARO = [244, 244, 244];
+      const CINZA_TEXTO = [110, 110, 110];
+      const PRETO = [25, 25, 25];
+
+      doc.setFillColor(...CONCRETO);
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      doc.setFillColor(...AMARELO);
+      doc.rect(0, 30, pageWidth, 1.5, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(16);
+      doc.text(empresaNome || 'OrçaPro - Manutenção Predial', centro, 14, { align: 'center' });
+      doc.setFont(undefined, 'normal');
+      if (empresaCnpj) {
+        doc.setFontSize(9);
+        doc.setTextColor(210, 210, 210);
+        doc.text('CNPJ: ' + empresaCnpj, centro, 21, { align: 'center' });
+      }
+
+      let y = 42;
+      const hoje = new Date();
+      const dataEmissao = String(hoje.getDate()).padStart(2, '0') + '/' +
+        String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+      doc.setFontSize(9);
+      doc.setTextColor(...CINZA_TEXTO);
+      doc.text('LISTA DE MATERIAIS', margemEsq, y);
+      doc.text('Emitido em: ' + dataEmissao, margemDir, y, { align: 'right' });
+      doc.setTextColor(...PRETO);
+
+      y += 12;
+
+      let zebra = false;
+      valores.forEach((material, idx) => {
+        y = y > 275 ? (doc.addPage(), 20) : y;
+        if (zebra) {
+          doc.setFillColor(...CINZA_CLARO);
+          doc.rect(margemEsq, y - 4.5, margemDir - margemEsq, 7, 'F');
+        }
+        zebra = !zebra;
+        doc.setFontSize(10);
+        doc.setTextColor(...PRETO);
+        doc.text(`${idx + 1}. ${material}`, margemEsq + 2, y);
+        y += 7;
+      });
+
+      const totalPaginas = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPaginas; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(210, 210, 210);
+        doc.line(margemEsq, pageHeight - 22, margemDir, pageHeight - 22);
+        doc.setFontSize(8);
+        doc.setTextColor(...CINZA_TEXTO);
+        doc.text('Página ' + p + ' de ' + totalPaginas, margemEsq, pageHeight - 15);
+
+        if (p === totalPaginas && (meuNome || meuTelefone)) {
+          let yRodape = pageHeight - 16;
+          doc.setFontSize(9);
+          doc.setTextColor(...PRETO);
+          if (meuNome) { doc.text('Enviado por: ' + meuNome, margemDir, yRodape, { align: 'right' }); yRodape += 5; }
+          if (meuTelefone) {
+            doc.setFontSize(8);
+            doc.setTextColor(...CINZA_TEXTO);
+            doc.text(meuTelefone, margemDir, yRodape, { align: 'right' });
+          }
+        }
+      }
+
+      const nomeArquivo = 'lista-materiais.pdf';
+      adicionarMarcaDagua(doc);
+      const blob = doc.output('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        navigator.share({
+          files: [arquivo],
+          title: 'Lista de materiais',
+          text: 'Segue a lista de materiais em anexo.',
+        }).catch(() => doc.save(nomeArquivo));
+      } else {
+        doc.save(nomeArquivo);
+        alert('Seu navegador não suporta compartilhamento direto. O PDF foi baixado — envie manualmente pelo WhatsApp.');
+      }
+    } catch (erro) {
+      console.error(erro);
+      alert('Ocorreu um erro ao gerar o PDF: ' + erro.message);
+    }
+  }
+
+  function gerarEEnviarPDF() {
+    if (orcamentoAtual.length === 0) {
+      alert('Adicione ao menos um item antes de gerar o PDF.');
+      return;
+    }
+    try {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Não foi possível carregar a biblioteca de PDF. Verifique sua conexão com a internet e tente novamente.');
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margemEsq = 14;
+      const margemDir = pageWidth - 14;
+      const centro = pageWidth / 2;
+
+      const CONCRETO = [43, 47, 51];
+      const AMARELO = [245, 166, 35];
+      const AMARELO_ESCURO = [180, 118, 14];
+      const CINZA_CLARO = [244, 244, 244];
+      const CINZA_TEXTO = [110, 110, 110];
+      const PRETO = [25, 25, 25];
+
+      function novaPaginaSeNecessario(yAtual, limite) {
+        if (yAtual > limite) {
+          doc.addPage();
+          return 20;
+        }
+        return yAtual;
+      }
+
+      // ---------- CABEÇALHO (faixa escura) ----------
+      doc.setFillColor(...CONCRETO);
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      doc.setFillColor(...AMARELO);
+      doc.rect(0, 30, pageWidth, 1.5, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(16);
+      doc.text(empresaNome || 'OrçaPro - Manutenção Predial', centro, 14, { align: 'center' });
+      doc.setFont(undefined, 'normal');
+      if (empresaCnpj) {
+        doc.setFontSize(9);
+        doc.setTextColor(210, 210, 210);
+        doc.text('CNPJ: ' + empresaCnpj, centro, 21, { align: 'center' });
+      }
+
+      let y = 42;
+
+      // Data de emissão + título do documento
+      doc.setFontSize(9);
+      doc.setTextColor(...CINZA_TEXTO);
+      doc.text('ORÇAMENTO DE SERVIÇOS', margemEsq, y);
+      const hoje = new Date();
+      const dataEmissao = String(hoje.getDate()).padStart(2, '0') + '/' +
+        String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+      doc.text('Emitido em: ' + dataEmissao, margemDir, y, { align: 'right' });
+      doc.setTextColor(...PRETO);
+
+      // Espaço de 3 linhas antes dos dados do cliente
+      y += 18;
+
+      // ---------- CAIXA DE DADOS DO CLIENTE ----------
+      if (dadosCliente.nome || dadosCliente.empresa || dadosCliente.telefone || dadosCliente.endereco || dadosCliente.obs) {
+        const linhasCliente = [];
+        if (dadosCliente.nome) linhasCliente.push(['Cliente', dadosCliente.nome]);
+        if (dadosCliente.empresa) linhasCliente.push(['Empresa', dadosCliente.empresa]);
+        if (dadosCliente.telefone) linhasCliente.push(['Telefone', dadosCliente.telefone]);
+        if (dadosCliente.endereco) linhasCliente.push(['Endereço', dadosCliente.endereco]);
+        if (dadosCliente.obs) linhasCliente.push(['Obs.', dadosCliente.obs]);
+
+        const alturaBox = 8 + linhasCliente.length * 6;
+        doc.setFillColor(...CINZA_CLARO);
+        doc.roundedRect(margemEsq, y, margemDir - margemEsq, alturaBox, 2, 2, 'F');
+
+        let yCliente = y + 7;
+        doc.setFontSize(10);
+        linhasCliente.forEach(([label, valor]) => {
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(...PRETO);
+          doc.text(label + ':', margemEsq + 5, yCliente);
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(60, 60, 60);
+          doc.text(String(valor), margemEsq + 32, yCliente);
+          yCliente += 6;
+        });
+        y += alturaBox;
+      }
+
+      // Espaço de 2 linhas antes dos dados do orçamento
+      y += 12;
+
+      // ---------- ITENS POR CATEGORIA ----------
+      let total = 0;
+      const categoriasEnvolvidas = [...new Set(orcamentoAtual.map(it => it.categoria))];
+
+      categoriasEnvolvidas.forEach(cat => {
+        y = novaPaginaSeNecessario(y, 260);
+
+        doc.setFillColor(...AMARELO);
+        doc.rect(margemEsq, y, margemDir - margemEsq, 7, 'F');
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...CONCRETO);
+        doc.text(cat.toUpperCase(), margemEsq + 3, y + 5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...PRETO);
+        y += 11;
+
+        let zebra = false;
+        orcamentoAtual.filter(it => it.categoria === cat).forEach(it => {
+          y = novaPaginaSeNecessario(y, 270);
+          total += it.total;
+
+          if (zebra) {
+            doc.setFillColor(...CINZA_CLARO);
+            doc.rect(margemEsq, y - 4.5, margemDir - margemEsq, 7, 'F');
+          }
+          zebra = !zebra;
+
+          const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : (it.unidade === '' ? '' : 'unidades'));
+          const detalhe = it.unidade === '' ? '' : `  (${it.quantidade.toFixed(2)} ${unidadeTxt})`;
+          doc.setFontSize(10);
+          doc.text(it.nome, margemEsq + 2, y);
+          if (detalhe) {
+            doc.setFontSize(8);
+            doc.setTextColor(...CINZA_TEXTO);
+            doc.text(detalhe, margemEsq + 2 + doc.getTextWidth(it.nome) + 1, y);
+            doc.setTextColor(...PRETO);
+            doc.setFontSize(10);
+          }
+          doc.setFont(undefined, 'bold');
+          doc.text(`R$ ${it.total.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
+          doc.setFont(undefined, 'normal');
+          y += 7;
+        });
+        y += 3;
+      });
+
+      // ---------- TOTAL ----------
+      y = novaPaginaSeNecessario(y, 255);
+      y += 3;
+      doc.setFillColor(...CONCRETO);
+      doc.roundedRect(margemEsq, y, margemDir - margemEsq, 12, 2, 2, 'F');
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(...AMARELO);
+      doc.text('TOTAL', margemEsq + 5, y + 8);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`R$ ${total.toFixed(2)}`, margemDir - 5, y + 8, { align: 'right' });
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(...PRETO);
+
+      // ---------- RODAPÉ (todas as páginas) ----------
+      const totalPaginas = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPaginas; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(210, 210, 210);
+        doc.line(margemEsq, pageHeight - 22, margemDir, pageHeight - 22);
+
+        doc.setFontSize(8);
+        doc.setTextColor(...CINZA_TEXTO);
+        doc.text('Página ' + p + ' de ' + totalPaginas, margemEsq, pageHeight - 15);
+
+        if (p === totalPaginas && (meuNome || meuTelefone)) {
+          doc.setFontSize(9);
+          let yRodape = pageHeight - 16;
+          doc.setTextColor(...PRETO);
+          if (meuNome) { doc.text('Enviado por: ' + meuNome, margemDir, yRodape, { align: 'right' }); yRodape += 5; }
+          if (meuTelefone) {
+            doc.setFontSize(8);
+            doc.setTextColor(...CINZA_TEXTO);
+            doc.text(meuTelefone, margemDir, yRodape, { align: 'right' });
+          }
+        }
+      }
+
+      const nomeArquivo = `orcamento-${(dadosCliente.nome || 'cliente').replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      adicionarMarcaDagua(doc);
+      const blob = doc.output('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        navigator.share({
+          files: [arquivo],
+          title: 'Orçamento - OrçaPro',
+          text: 'Segue o orçamento em anexo.',
+        }).catch(() => doc.save(nomeArquivo));
+      } else {
+        doc.save(nomeArquivo);
+        alert('Seu navegador não suporta compartilhamento direto. O PDF foi baixado — envie manualmente pelo WhatsApp.');
+      }
+    } catch (erro) {
+      console.error(erro);
+      alert('Ocorreu um erro ao gerar o PDF: ' + erro.message);
+    }
+  }
+
+  /* ---------- INICIALIZAÇÃO ---------- */
+  renderizarResumo();
+
+  /* ---------- PWA: REGISTRO DO SERVICE WORKER ---------- */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
