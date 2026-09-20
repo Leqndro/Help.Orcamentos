@@ -7,11 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="OrçaPro">
+<meta name="apple-mobile-web-app-title" content="Help Orçamentos">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<title>Orçamentos - Manutenção Predial</title>
+<title>Help Orçamentos - Manutenção Predial</title>
 <style>
   :root {
     --concreto: #2b2f33;
@@ -248,14 +248,14 @@
   <section class="tela ativa" id="tela-splash">
     <main style="justify-content:center; align-items:center; flex:1; gap:0; text-align:center;">
       <div style="width:84px; height:84px; border-radius:18px; background:var(--concreto-claro); border:2px solid var(--amarelo-obra); display:flex; align-items:center; justify-content:center; font-size:40px; margin-bottom:22px;">🏗️</div>
-      <p style="color:var(--amarelo-obra); font-size:14px; font-weight:700; letter-spacing:0.06em; margin:0 0 6px 0;">ORÇAPRO</p>
+      <p style="color:var(--amarelo-obra); font-size:14px; font-weight:700; letter-spacing:0.06em; margin:0 0 6px 0;">HELP ORÇAMENTOS</p>
       <h1 style="color:var(--texto-claro); font-size:28px; font-weight:800; margin:0 0 6px 0; line-height:1.2;">Manutenção Predial</h1>
       <p style="color:var(--texto-suave); font-size:14px; margin:0 0 44px 0;">Orçamentos rápidos e organizados</p>
       <button class="btn btn-primario" style="padding:20px 42px; font-size:18px; border-radius:14px; box-shadow:0 8px 24px rgba(245,166,35,0.35);" onclick="novoOrcamento()">
         Novo Orçamento
       </button>
     </main>
-    <footer><span>OrçaPro © Manutenção Predial</span></footer>
+    <footer><span>Help Orçamentos © Manutenção Predial · v2.0</span></footer>
   </section>
 
   <!-- ===== TELA 0B: DADOS DO CLIENTE ===== -->
@@ -1165,12 +1165,12 @@
       doc.setFont(undefined, 'normal');
       // Cantos superiores (sobre a faixa escura do cabeçalho)
       doc.setTextColor(255, 255, 255);
-      doc.text('OrçaPro', 4, 6);
-      doc.text('OrçaPro', pageWidth - 4, 6, { align: 'right' });
+      doc.text('Help Orçamentos', 4, 6);
+      doc.text('Help Orçamentos', pageWidth - 4, 6, { align: 'right' });
       // Cantos inferiores (fundo branco)
       doc.setTextColor(200, 200, 200);
-      doc.text('OrçaPro', 4, pageHeight - 3);
-      doc.text('OrçaPro', pageWidth - 4, pageHeight - 3, { align: 'right' });
+      doc.text('Help Orçamentos', 4, pageHeight - 3);
+      doc.text('Help Orçamentos', pageWidth - 4, pageHeight - 3, { align: 'right' });
     }
     doc.setTextColor(0, 0, 0);
   }
@@ -1525,17 +1525,20 @@
           }
           zebra = !zebra;
 
-          const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : (it.unidade === '' ? '' : 'unidades'));
-          const detalhe = it.unidade === '' ? '' : `  (${it.quantidade.toFixed(2)} ${unidadeTxt})`;
+          const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
+          const detalhe = it.unidade === '' ? '' : `${it.quantidade.toFixed(2)} ${unidadeTxt}`;
+
           doc.setFontSize(10);
-          doc.text(it.nome, margemEsq + 2, y);
+          doc.text(it.nome, margemEsq + 2, y, { maxWidth: (centro - margemEsq) - 6 });
+
           if (detalhe) {
-            doc.setFontSize(8);
+            doc.setFontSize(9);
             doc.setTextColor(...CINZA_TEXTO);
-            doc.text(detalhe, margemEsq + 2 + doc.getTextWidth(it.nome) + 1, y);
+            doc.text(detalhe, centro, y, { align: 'center' });
             doc.setTextColor(...PRETO);
             doc.setFontSize(10);
           }
+
           doc.setFont(undefined, 'bold');
           doc.text(`R$ ${it.total.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
           doc.setFont(undefined, 'normal');
@@ -1593,7 +1596,7 @@
       if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
         navigator.share({
           files: [arquivo],
-          title: 'Orçamento - OrçaPro',
+          title: 'Orçamento - Help Orçamentos',
           text: 'Segue o orçamento em anexo.',
         }).catch(() => doc.save(nomeArquivo));
       } else {

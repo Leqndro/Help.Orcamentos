@@ -1,6 +1,6 @@
 {
-  "name": "OrçaPro - Manutenção Predial",
-  "short_name": "OrçaPro",
+  "name": "Help Orçamentos - Manutenção Predial",
+  "short_name": "Help Orçamentos",
   "description": "Orçamentos rápidos e organizados para manutenção predial",
   "start_url": "./index.html",
   "scope": "./",
