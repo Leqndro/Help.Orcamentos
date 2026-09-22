@@ -1,4 +1,4 @@
-const CACHE_NAME = 'help-orcamentos-v4';
+const CACHE_NAME = 'help-orcamentos-v5';
 const ARQUIVOS_CACHE = [
   './index.html',
   './manifest.json',
