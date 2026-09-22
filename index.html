@@ -1111,17 +1111,6 @@
     return { quantidade, total: quantidade * valorM2, valorM2 };
   }
 
-  function atualizarPreviewMedidas() {
-    const { total } = calcularMedidas();
-    if (itemSelecionado.tipo !== 'direto') {
-      const { quantidade } = calcularMedidas();
-      const sufixo = itemSelecionado.tipo === 'area' ? ' m²' : ' m';
-      document.getElementById('medidas-preview-area').textContent =
-        quantidade.toFixed(2).replace('.', ',') + sufixo;
-    }
-    document.getElementById('medidas-preview-total').textContent =
-      'R$ ' + total.toFixed(2).replace('.', ',');
-  }
 
 
   function confirmarItemMedidas() {
