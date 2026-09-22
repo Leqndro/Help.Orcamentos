@@ -386,39 +386,49 @@
     </footer>
   </section>
 
-  <!-- ===== TELA 3B: FORMULÁRIO POR MEDIDAS (GESSO) ===== -->
+  <!-- ===== TELA 3B: FORMULÁRIO POR MEDIDAS ===== -->
   <section class="tela" id="tela-form-medidas">
     <header>
-      <button class="voltar" onclick="irPara('tela-itens')">‹</button>
+      <button class="voltar" onclick="voltarDaTelaMedidas()">‹</button>
       <div class="titulos">
-        <p class="eyebrow">ADICIONAR ITEM</p>
+        <p class="eyebrow">DRY WALL</p>
         <h1 id="medidas-titulo">Item</h1>
+        <p class="sub" id="medidas-subtitulo">Informe o valor e as medidas dos cômodos</p>
       </div>
     </header>
     <main>
       <div class="campo">
-        <label>Cômodo (opcional)</label>
-        <input type="text" id="medidas-comodo" placeholder="Ex: Sala, Cozinha, Quarto 1...">
-      </div>
-      <div id="medidas-campos"></div>
-
-      <div class="campo">
-        <label>Valor por m² (R$)</label>
+        <label id="medidas-valor-label">Valor por m² (R$)</label>
         <input type="number" inputmode="decimal" id="medidas-valor-m2" placeholder="0,00" min="0" step="0.01">
       </div>
 
       <div class="campo">
-        <label id="medidas-preview-label">Área / medida total</label>
-        <div style="background: var(--concreto-claro); border-radius:8px; padding:13px 14px; color: var(--texto-claro); font-weight:600;" id="medidas-preview-area">0,00 m²</div>
+        <label>Cômodo (opcional)</label>
+        <input type="text" id="medidas-comodo" placeholder="Ex: Sala, Cozinha, Quarto 1...">
       </div>
 
-      <div class="campo">
-        <label>Total do item</label>
-        <div style="background: var(--concreto-claro); border-radius:8px; padding:13px 14px; color: var(--amarelo-obra); font-weight:700; font-size:16px;" id="medidas-preview-total">R$ 0,00</div>
+      <div id="medidas-campos"></div>
+
+      <div class="campo" id="medidas-preview-campo">
+        <label id="medidas-preview-label">Total da medida</label>
+        <div style="background:var(--concreto-claro); border-radius:8px; padding:13px 14px; color:var(--texto-claro); font-weight:600;" id="medidas-preview-area">0,00</div>
+      </div>
+
+      <div class="campo" id="medidas-preview-total-campo">
+        <label>Total deste cômodo</label>
+        <div style="background:var(--concreto-claro); border-radius:8px; padding:13px 14px; color:var(--amarelo-obra); font-weight:700; font-size:16px;" id="medidas-preview-total">R$ 0,00</div>
+      </div>
+
+      <div class="resumo-box" id="medidas-itens-adicionados">
+        <p class="resumo-titulo">CÔMODOS ADICIONADOS</p>
+        <div id="lista-medidas-adicionadas">
+          <p class="resumo-vazio">Nenhum cômodo adicionado</p>
+        </div>
       </div>
     </main>
-    <footer>
-      <button class="btn btn-primario btn-bloco" onclick="confirmarItemMedidas()">Adicionar item</button>
+    <footer style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn btn-primario btn-bloco" onclick="confirmarItemMedidas()">+ Adicionar cômodo</button>
+      <button class="btn btn-secundario btn-bloco" onclick="voltarDaTelaMedidas()">‹ Voltar</button>
     </footer>
   </section>
 
@@ -461,6 +471,7 @@
     <footer style="display:flex; flex-direction:column; gap:10px;">
       <button class="btn btn-primario btn-bloco" onclick="gerarEEnviarPDF()">📄 Gerar e enviar PDF</button>
       <button class="btn btn-secundario btn-bloco" id="btn-pdf-drywall" style="display:none;" onclick="gerarPDFMateriaisDrywall()">🧱 PDF de materiais (Dry Wall)</button>
+      <button class="btn btn-secundario btn-bloco" id="btn-pdf-medidas-drywall" style="display:none;" onclick="gerarPDFMedidasDryWall()">📐 PDF de medidas (Dry Wall)</button>
       <button class="btn btn-secundario btn-bloco" onclick="irPara('tela-home')">Início</button>
     </footer>
   </section>
@@ -472,7 +483,7 @@
   const categorias = [
     { id: 'eletrica',  nome: 'Elétrica',   desc: 'Tomadas, fiação, plafons',      icone: '⚡' },
     { id: 'hidraulica',nome: 'Hidráulica', desc: 'Tubulações, registros, vazamentos', icone: '🔧' },
-    { id: 'gesso',     nome: 'Gesso',      desc: 'Parede, forro, sanca, moldura',  icone: '▦' },
+    { id: 'gesso',     nome: 'Dry Wall',  desc: 'Paredes, forros, sancas, molduras', icone: '▦' },
     { id: 'pintura',   nome: 'Pintura',    desc: 'Interna, externa, textura',      icone: '🖌' },
     { id: 'alvenaria', nome: 'Alvenaria',  desc: 'Muros, paredes, reboco',         icone: '🧱' },
   ];
@@ -581,7 +592,7 @@
   // Montante e Guia da parede são calculados pela geometria real (largura/altura de cada parede),
   // não por uma proporção genérica de m² — ver explicação no calcularMateriaisDrywall().
   function calcularMontanteEGuiaParede() {
-    const paredes = orcamentoAtual.filter(it => it.categoria === 'Gesso' && it.nome === 'Parede de dry wall');
+    const paredes = orcamentoAtual.filter(it => it.categoria === 'Dry Wall' && it.nome === 'Parede de dry wall');
     let totalLinearMontante = 0;
     let totalPerimetroGuia = 0;
 
@@ -609,7 +620,7 @@
   // Canaleta F530 do forro: barras a cada 60cm ao longo da largura, cada uma
   // percorrendo todo o comprimento do forro.
   function calcularCanaletaF530Forro() {
-    const forros = orcamentoAtual.filter(it => it.categoria === 'Gesso' && it.nome === 'Forro');
+    const forros = orcamentoAtual.filter(it => it.categoria === 'Dry Wall' && it.nome === 'Forro');
     let totalLinearCanaleta = 0;
 
     forros.forEach(f => {
@@ -626,10 +637,10 @@
 
   function calcularMateriaisDrywall() {
     const areaParede = orcamentoAtual
-      .filter(it => it.categoria === 'Gesso' && it.nome === 'Parede de dry wall')
+      .filter(it => it.categoria === 'Dry Wall' && it.nome === 'Parede de dry wall')
       .reduce((soma, it) => soma + it.quantidade, 0);
     const areaForro = orcamentoAtual
-      .filter(it => it.categoria === 'Gesso' && it.nome === 'Forro')
+      .filter(it => it.categoria === 'Dry Wall' && it.nome === 'Forro')
       .reduce((soma, it) => soma + it.quantidade, 0);
 
     const resultado = [];
@@ -683,6 +694,8 @@
   let empresaNome = '';
   let empresaCnpj = '';
   let meuNome = '';
+  let modoMedidasDryWall = false;
+  let drywallMedidasAtual = null;
 
   /* ---------- NAVEGAÇÃO ---------- */
   function irPara(idTela) {
@@ -904,71 +917,175 @@
   }
 
   /* ---------- TELA 3B: FORMULÁRIO POR MEDIDAS (GESSO) ---------- */
+  function ehMedidaDryWall(item) {
+    return categoriaAtual && categoriaAtual.id === 'gesso' &&
+      ['parede', 'forro', 'sanca', 'moldura'].includes(item.id);
+  }
+
+  function voltarDaTelaMedidas() {
+    if (modoMedidasDryWall) {
+      drywallMedidasAtual = null;
+      modoMedidasDryWall = false;
+    }
+    irPara('tela-itens');
+  }
+
   function abrirFormularioMedidas(item) {
     itemSelecionado = item;
-    camposX2Ativos = new Set();
+    modoMedidasDryWall = ehMedidaDryWall(item);
+
+    if (modoMedidasDryWall) {
+      drywallMedidasAtual = { itemId: item.id, registros: [], valorM2: 0 };
+    }
+
     document.getElementById('medidas-titulo').textContent = item.nome;
     document.getElementById('medidas-comodo').value = '';
 
     const container = document.getElementById('medidas-campos');
     container.innerHTML = '';
+
     item.campos.forEach(campo => {
       const div = document.createElement('div');
       div.className = 'campo';
       const tipoInput = campo.inputType === 'text' ? 'text' : 'number';
       const inputmodeAttr = tipoInput === 'text' ? '' : 'inputmode="decimal"';
-      if (item.tipo === 'linear-x2') {
-        div.innerHTML = `
-          <label>${campo.label}</label>
-          <div style="display:flex; gap:8px;">
-            <input type="number" inputmode="decimal" class="medida-input" data-campo="${campo.id}" placeholder="0,00" min="0" step="0.01" style="flex:1;">
-            <button type="button" class="btn btn-secundario x2-toggle" data-campo="${campo.id}" style="flex:0 0 56px; padding:0; font-size:13px;">X2</button>
-          </div>
-        `;
-      } else {
-        div.innerHTML = `
-          <label>${campo.label}</label>
-          <input type="${tipoInput}" ${inputmodeAttr} class="medida-input" data-campo="${campo.id}" placeholder="${tipoInput === 'text' ? 'Digite aqui...' : '0,00'}" ${tipoInput === 'number' ? 'min="0" step="0.01"' : ''}>
-        `;
-      }
+      div.innerHTML = `
+        <label>${campo.label}</label>
+        <input type="${tipoInput}" ${inputmodeAttr} class="medida-input" data-campo="${campo.id}"
+          placeholder="${tipoInput === 'text' ? 'Digite aqui...' : '0,00'}"
+          ${tipoInput === 'number' ? 'min="0" step="0.01"' : ''}>
+      `;
       container.appendChild(div);
     });
-    container.querySelectorAll('.medida-input').forEach(inp =>
-      inp.addEventListener('input', atualizarPreviewMedidas)
-    );
-    container.querySelectorAll('.x2-toggle').forEach(btn =>
-      btn.addEventListener('click', () => alternarX2Campo(btn.dataset.campo, btn))
-    );
 
-    document.getElementById('medidas-preview-label').textContent =
-      item.tipo === 'area' ? 'Área total' : (item.tipo === 'direto' ? 'Resumo' : 'Medida total');
-    document.getElementById('medidas-valor-m2').value = '';
-
-    // Rótulo do campo de valor: "por m²" para cálculos de área, "total" para itens diretos
-    const campoValorLabel = document.getElementById('medidas-valor-m2').previousElementSibling;
-    if (campoValorLabel) {
-      campoValorLabel.textContent = item.tipo === 'direto' ? 'Valor (R$)' : 'Valor por m² (R$)';
+    // O cômodo fica separado dos demais campos e permanece simples para os outros serviços.
+    const comodo = document.getElementById('medidas-comodo');
+    if (comodo) {
+      comodo.parentElement.style.display = modoMedidasDryWall ? 'flex' : 'none';
     }
 
-    // Esconde a prévia de área/medida para itens diretos (não faz sentido mostrar)
-    document.getElementById('medidas-preview-area').parentElement.style.display =
+    // Para Dry Wall, o valor é informado uma vez e reaproveitado em todos os cômodos.
+    const valorInput = document.getElementById('medidas-valor-m2');
+    valorInput.value = '';
+    valorInput.readOnly = false;
+    valorInput.style.opacity = '1';
+
+    const valorLabel = document.getElementById('medidas-valor-label');
+    const previewLabel = document.getElementById('medidas-preview-label');
+    const subtitulo = document.getElementById('medidas-subtitulo');
+
+    if (modoMedidasDryWall) {
+      const linear = ['sanca', 'moldura'].includes(item.id);
+      valorLabel.textContent = linear ? 'Valor por metro (R$)' : 'Valor por m² (R$)';
+      previewLabel.textContent = linear ? 'Metragem linear deste cômodo' : 'Área deste cômodo';
+      subtitulo.textContent = linear
+        ? 'Digite o valor uma vez e adicione cada cômodo'
+        : 'Digite o valor uma vez e adicione cada cômodo';
+    } else {
+      valorLabel.textContent = item.tipo === 'direto' ? 'Valor (R$)' : 'Valor por m² (R$)';
+      previewLabel.textContent = item.tipo === 'area' ? 'Área total' : (item.tipo === 'direto' ? 'Resumo' : 'Medida total');
+      subtitulo.textContent = 'Informe as medidas';
+    }
+
+    document.getElementById('medidas-preview-campo').style.display =
       item.tipo === 'direto' ? 'none' : 'flex';
+    document.getElementById('medidas-preview-total-campo').style.display = 'flex';
+
+    const listaBox = document.getElementById('medidas-itens-adicionados');
+    listaBox.style.display = modoMedidasDryWall ? 'block' : 'none';
+
+    document.querySelectorAll('.medida-input').forEach(inp =>
+      inp.addEventListener('input', atualizarPreviewMedidas)
+    );
+    valorInput.addEventListener('input', atualizarPreviewMedidas);
 
     atualizarPreviewMedidas();
+    renderizarMedidasAdicionadas();
     irPara('tela-form-medidas');
   }
 
-  function alternarX2Campo(campoId, btn) {
-    if (camposX2Ativos.has(campoId)) {
-      camposX2Ativos.delete(campoId);
-      btn.style.borderColor = 'var(--linha)';
-      btn.style.color = 'var(--texto-claro)';
+  function calcularMedidaDryWallAtual() {
+    const get = id => {
+      const el = document.querySelector(`.medida-input[data-campo="${id}"]`);
+      return el ? (parseFloat(el.value) || 0) : 0;
+    };
+
+    const largura = get('largura');
+    const comprimento = get('comprimento');
+    const altura = get('altura');
+
+    let quantidade = 0;
+    let unidade = 'm²';
+
+    if (itemSelecionado.id === 'parede') {
+      quantidade = largura * altura;
+      unidade = 'm²';
+    } else if (itemSelecionado.id === 'forro') {
+      quantidade = largura * comprimento;
+      unidade = 'm²';
     } else {
-      camposX2Ativos.add(campoId);
-      btn.style.borderColor = 'var(--amarelo-obra)';
-      btn.style.color = 'var(--amarelo-obra)';
+      // Sanca e Moldura são lineares: os dois lados são considerados automaticamente.
+      quantidade = (largura * 2) + (comprimento * 2);
+      unidade = 'm';
     }
-    atualizarPreviewMedidas();
+
+    const valor = parseFloat(document.getElementById('medidas-valor-m2').value) || 0;
+    return { largura, comprimento, altura, quantidade, unidade, valor, total: quantidade * valor };
+  }
+
+  function atualizarPreviewMedidas() {
+    if (modoMedidasDryWall) {
+      const r = calcularMedidaDryWallAtual();
+      document.getElementById('medidas-preview-area').textContent =
+        r.quantidade.toFixed(2).replace('.', ',') + ' ' + r.unidade;
+      document.getElementById('medidas-preview-total').textContent =
+        'R$ ' + r.total.toFixed(2).replace('.', ',');
+      return;
+    }
+
+    const { total } = calcularMedidas();
+    if (itemSelecionado.tipo !== 'direto') {
+      const { quantidade } = calcularMedidas();
+      const sufixo = itemSelecionado.tipo === 'area' ? ' m²' : ' m';
+      document.getElementById('medidas-preview-area').textContent =
+        quantidade.toFixed(2).replace('.', ',') + sufixo;
+    }
+    document.getElementById('medidas-preview-total').textContent =
+      'R$ ' + total.toFixed(2).replace('.', ',');
+  }
+
+  function renderizarMedidasAdicionadas() {
+    const lista = document.getElementById('lista-medidas-adicionadas');
+    if (!lista) return;
+
+    if (!modoMedidasDryWall || !drywallMedidasAtual || drywallMedidasAtual.registros.length === 0) {
+      lista.innerHTML = '<p class="resumo-vazio">Nenhum cômodo adicionado</p>';
+      return;
+    }
+
+    lista.innerHTML = '';
+    drywallMedidasAtual.registros.forEach((r, idx) => {
+      const linha = document.createElement('div');
+      linha.className = 'resumo-linha';
+      const dim = r.itemId === 'parede'
+        ? `${r.largura.toFixed(2)} × ${r.altura.toFixed(2)} m`
+        : `${r.largura.toFixed(2)} × ${r.comprimento.toFixed(2)} m`;
+      linha.innerHTML = `
+        <span>${r.comodo || 'Sem cômodo'} — ${dim} = ${r.quantidade.toFixed(2)} ${r.unidade} · R$ ${r.total.toFixed(2)}</span>
+        <button class="remover" onclick="removerMedidaDryWall(${idx})">✕</button>
+      `;
+      lista.appendChild(linha);
+    });
+  }
+
+  function removerMedidaDryWall(idx) {
+    if (!drywallMedidasAtual) return;
+    const registro = drywallMedidasAtual.registros[idx];
+    const pos = orcamentoAtual.findIndex(it => it._drywallRegistroId === registro.id);
+    if (pos >= 0) orcamentoAtual.splice(pos, 1);
+    drywallMedidasAtual.registros.splice(idx, 1);
+    renderizarResumo();
+    renderizarMedidasAdicionadas();
   }
 
   function calcularMedidas() {
@@ -1006,9 +1123,70 @@
       'R$ ' + total.toFixed(2).replace('.', ',');
   }
 
-  document.getElementById('medidas-valor-m2').addEventListener('input', atualizarPreviewMedidas);
 
   function confirmarItemMedidas() {
+    if (modoMedidasDryWall) {
+      const r = calcularMedidaDryWallAtual();
+      const comodo = document.getElementById('medidas-comodo').value.trim();
+
+      if (!comodo) { alert('Informe o nome do cômodo.'); return; }
+      if (r.largura <= 0 || (itemSelecionado.id !== 'parede' && r.comprimento <= 0) ||
+          (itemSelecionado.id === 'parede' && r.altura <= 0)) {
+        alert('Informe todas as medidas do cômodo.');
+        return;
+      }
+      if (r.valor <= 0) { alert('Informe o valor por metro/m².'); return; }
+
+      if (drywallMedidasAtual.registros.length === 0) {
+        drywallMedidasAtual.valorM2 = r.valor;
+        document.getElementById('medidas-valor-m2').readOnly = true;
+        document.getElementById('medidas-valor-m2').style.opacity = '0.7';
+      } else if (Math.abs(r.valor - drywallMedidasAtual.valorM2) > 0.0001) {
+        alert('O valor por metro/m² já foi definido para esta categoria. Ele será usado nos próximos cômodos.');
+        document.getElementById('medidas-valor-m2').value = drywallMedidasAtual.valorM2;
+        return;
+      }
+
+      const registro = {
+        id: Date.now() + Math.random(),
+        itemId: itemSelecionado.id,
+        nome: itemSelecionado.nome,
+        comodo,
+        largura: r.largura,
+        comprimento: r.comprimento,
+        altura: r.altura,
+        quantidade: r.quantidade,
+        unidade: r.unidade,
+        valor: drywallMedidasAtual.valorM2,
+        total: r.quantidade * drywallMedidasAtual.valorM2
+      };
+
+      drywallMedidasAtual.registros.push(registro);
+      orcamentoAtual.push({
+        categoria: categoriaAtual.nome,
+        nome: itemSelecionado.nome,
+        comodo,
+        quantidade: registro.quantidade,
+        unidade: registro.unidade,
+        maoDeObraUnit: registro.valor,
+        valorFixo: false,
+        total: registro.total,
+        largura: registro.largura,
+        comprimento: registro.comprimento,
+        altura: registro.altura,
+        _drywallRegistroId: registro.id
+      });
+
+      renderizarResumo();
+      renderizarMedidasAdicionadas();
+
+      // Limpa somente as medidas do novo cômodo. O valor continua preenchido.
+      document.getElementById('medidas-comodo').value = '';
+      document.querySelectorAll('.medida-input').forEach(inp => inp.value = '');
+      atualizarPreviewMedidas();
+      return;
+    }
+
     const { quantidade, total, valorM2 } = calcularMedidas();
 
     if (itemSelecionado.tipo === 'direto') {
@@ -1160,6 +1338,8 @@
 
     const materiaisDrywall = calcularMateriaisDrywall();
     document.getElementById('btn-pdf-drywall').style.display = materiaisDrywall.length > 0 ? 'block' : 'none';
+    document.getElementById('btn-pdf-medidas-drywall').style.display = orcamentoAtual.some(it => it.categoria === 'Dry Wall' && it._drywallRegistroId) ? 'block' : 'none';
+    document.getElementById('btn-pdf-medidas-drywall').style.display = orcamentoAtual.some(it => it.categoria === 'Dry Wall') ? 'block' : 'none';
     materiaisDrywall.forEach(bloco => {
       const box = document.createElement('div');
       box.className = 'resumo-box';
@@ -1219,6 +1399,163 @@
       doc.text('Help Orçamentos', pageWidth - 4, pageHeight - 3, { align: 'right' });
     }
     doc.setTextColor(0, 0, 0);
+  }
+
+  function gerarPDFMedidasDryWall() {
+    const itens = orcamentoAtual.filter(it => it.categoria === 'Dry Wall' && it._drywallRegistroId);
+    if (itens.length === 0) {
+      alert('Adicione medidas de Dry Wall ao orçamento antes de gerar o PDF.');
+      return;
+    }
+
+    try {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Não foi possível carregar a biblioteca de PDF. Verifique sua conexão com a internet.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margemEsq = 14;
+      const margemDir = pageWidth - 14;
+      const centro = pageWidth / 2;
+      const CONCRETO = [43, 47, 51];
+      const AMARELO = [245, 166, 35];
+      const CINZA_CLARO = [244, 244, 244];
+      const CINZA_TEXTO = [110, 110, 110];
+      const PRETO = [25, 25, 25];
+
+      const headerH = 58;
+      doc.setFillColor(...CONCRETO);
+      doc.rect(0, 0, pageWidth, headerH, 'F');
+      doc.setFillColor(...AMARELO);
+      doc.rect(0, headerH, pageWidth, 1.5, 'F');
+      const logoSize = 46;
+      doc.addImage(LOGO_BASE64, 'PNG', centro - logoSize/2, (headerH-logoSize)/2, logoSize, logoSize);
+
+      let y = headerH + 14;
+      const hoje = new Date();
+      const dataEmissao = String(hoje.getDate()).padStart(2, '0') + '/' +
+        String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+
+      doc.setFontSize(9);
+      doc.setTextColor(...CINZA_TEXTO);
+      doc.text('MEDIDAS DRY WALL', margemEsq, y);
+      doc.text('Emitido em: ' + dataEmissao, margemDir, y, { align: 'right' });
+      doc.setTextColor(...PRETO);
+      y += 12;
+
+      const categorias = [...new Set(itens.map(it => it.nome))];
+      categorias.forEach(nome => {
+        const grupo = itens.filter(it => it.nome === nome);
+        if (y > 260) { doc.addPage(); y = 20; }
+
+        doc.setFillColor(...AMARELO);
+        doc.rect(margemEsq, y, margemDir - margemEsq, 7, 'F');
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(...CONCRETO);
+        doc.text(nome.toUpperCase(), margemEsq + 3, y + 5);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(...PRETO);
+        y += 11;
+
+        let zebra = false;
+        grupo.forEach(it => {
+          if (y > 270) { doc.addPage(); y = 20; }
+
+          if (zebra) {
+            doc.setFillColor(...CINZA_CLARO);
+            doc.rect(margemEsq, y - 4.5, margemDir - margemEsq, 8, 'F');
+          }
+          zebra = !zebra;
+
+          const linhaMedidas = it.nome === 'Parede de dry wall'
+            ? `Largura: ${it.largura.toFixed(2)} m   Altura: ${it.altura.toFixed(2)} m`
+            : `Largura: ${it.largura.toFixed(2)} m   Comprimento: ${it.comprimento.toFixed(2)} m`;
+
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'bold');
+          doc.text(it.comodo || 'Sem cômodo', margemEsq + 2, y);
+          doc.setFont(undefined, 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(...CINZA_TEXTO);
+          doc.text(linhaMedidas, margemEsq + 2, y + 5);
+          doc.setTextColor(...PRETO);
+          doc.setFontSize(10);
+          doc.text(`= ${it.quantidade.toFixed(2)} ${it.unidade}`, margemDir - 2, y + 5, { align: 'right' });
+          y += 12;
+        });
+
+        const totalGrupo = grupo.reduce((sum, it) => sum + it.quantidade, 0);
+        const valorGrupo = grupo.reduce((sum, it) => sum + it.total, 0);
+        y += 2;
+        doc.setFont(undefined, 'bold');
+        doc.text(`Subtotal: ${totalGrupo.toFixed(2)} ${grupo[0].unidade}`, margemEsq + 2, y);
+        doc.text(`R$ ${valorGrupo.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
+        doc.setFont(undefined, 'normal');
+        y += 10;
+      });
+
+      const totalMetragem = itens.reduce((sum, it) => sum + it.quantidade, 0);
+      const totalValor = itens.reduce((sum, it) => sum + it.total, 0);
+
+      if (y > 255) { doc.addPage(); y = 25; }
+      doc.setFillColor(...AMARELO);
+      doc.roundedRect(margemEsq, y, margemDir - margemEsq, 18, 3, 3, 'F');
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(...CONCRETO);
+      doc.text(`TOTAL DE METRAGEM: ${totalMetragem.toFixed(2)} ${itens.some(it => it.unidade === 'm²') ? 'm²' : 'm'}`, margemEsq + 4, y + 7);
+      doc.text(`VALOR TOTAL: R$ ${totalValor.toFixed(2)}`, margemDir - 4, y + 7, { align: 'right' });
+      doc.setFont(undefined, 'normal');
+
+      // Dados do cliente, seguindo o mesmo padrão dos demais PDFs.
+      if (dadosCliente.nome || dadosCliente.empresa || dadosCliente.telefone || dadosCliente.endereco) {
+        y += 27;
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.setFontSize(9);
+        doc.setTextColor(...CINZA_TEXTO);
+        doc.text('CLIENTE', margemEsq, y);
+        y += 6;
+        doc.setTextColor(...PRETO);
+        doc.setFontSize(10);
+        if (dadosCliente.nome) { doc.text(dadosCliente.nome, margemEsq, y); y += 5; }
+        if (dadosCliente.empresa) { doc.text('Empresa: ' + dadosCliente.empresa, margemEsq, y); y += 5; }
+        if (dadosCliente.telefone) { doc.text('Telefone: ' + dadosCliente.telefone, margemEsq, y); y += 5; }
+        if (dadosCliente.endereco) { doc.text('Endereço: ' + dadosCliente.endereco, margemEsq, y); }
+      }
+
+      const totalPaginas = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPaginas; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(210, 210, 210);
+        doc.line(margemEsq, pageHeight - 22, margemDir, pageHeight - 22);
+        doc.setFontSize(8);
+        doc.setTextColor(...CINZA_TEXTO);
+        doc.text('Página ' + p + ' de ' + totalPaginas, margemEsq, pageHeight - 15);
+      }
+
+      adicionarMarcaDagua(doc);
+      const nomeArquivo = 'medidas.pdf';
+      const blob = doc.output('blob');
+      const arquivo = new File([blob], nomeArquivo, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+        navigator.share({
+          files: [arquivo],
+          title: 'Medidas Dry Wall',
+          text: 'Segue o PDF de medidas do Dry Wall em anexo.',
+        }).catch(() => doc.save(nomeArquivo));
+      } else {
+        doc.save(nomeArquivo);
+        alert('Seu navegador não suporta compartilhamento direto. O PDF foi baixado — envie manualmente pelo WhatsApp.');
+      }
+    } catch (erro) {
+      console.error(erro);
+      alert('Ocorreu um erro ao gerar o PDF: ' + erro.message);
+    }
   }
 
   function gerarPDFMateriaisDrywall() {
