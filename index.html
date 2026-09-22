@@ -255,7 +255,7 @@
         Novo Orçamento
       </button>
     </main>
-    <footer><span>Help Orçamentos © Manutenção Predial · v2.1</span></footer>
+    <footer><span>Help Orçamentos © Manutenção Predial · v2.2</span></footer>
   </section>
 
   <!-- ===== TELA 0B: DADOS DO CLIENTE ===== -->
@@ -365,6 +365,10 @@
         <input type="text" id="form-nome-personalizado" placeholder="Ex: chuveiro, torneira, filtro...">
       </div>
       <div class="campo">
+        <label>Cômodo (opcional)</label>
+        <input type="text" id="form-comodo" placeholder="Ex: Sala, Cozinha, Quarto 1...">
+      </div>
+      <div class="campo">
         <label id="form-label-qtd">Quantidade</label>
         <input type="number" inputmode="decimal" id="form-quantidade" placeholder="0" min="0" step="0.01">
       </div>
@@ -392,6 +396,10 @@
       </div>
     </header>
     <main>
+      <div class="campo">
+        <label>Cômodo (opcional)</label>
+        <input type="text" id="medidas-comodo" placeholder="Ex: Sala, Cozinha, Quarto 1...">
+      </div>
       <div id="medidas-campos"></div>
 
       <div class="campo">
@@ -797,6 +805,10 @@
     });
   }
 
+  function nomeExibicao(it) {
+    return it.comodo ? `${it.nome} — ${it.comodo}` : it.nome;
+  }
+
   function renderizarResumo() {
     const subCliente = document.getElementById('home-cliente-sub');
     if (subCliente) {
@@ -817,7 +829,7 @@
       const unidadeTxt = it.unidade === 'm' ? 'm' : (it.unidade === 'm²' ? 'm²' : 'un');
       const qtdTexto = it.unidade === '' ? '' : `${it.quantidade.toFixed(2)} ${unidadeTxt} · `;
       linha.innerHTML = `
-        <span>[${it.categoria}] ${it.nome} — ${qtdTexto}R$ ${it.total.toFixed(2)}</span>
+        <span>[${it.categoria}] ${nomeExibicao(it)} — ${qtdTexto}R$ ${it.total.toFixed(2)}</span>
         <button class="remover" onclick="removerItem(${idx})">✕</button>
       `;
       resumo.appendChild(linha);
@@ -835,6 +847,7 @@
     document.getElementById('form-titulo').textContent = item.nome;
     document.getElementById('form-campo-nome').style.display = item.personalizado ? 'flex' : 'none';
     document.getElementById('form-nome-personalizado').value = '';
+    document.getElementById('form-comodo').value = '';
     document.getElementById('form-label-qtd').textContent =
       item.unidade === 'm' ? 'Quantidade (metros)' : 'Quantidade (unidades)';
     document.getElementById('form-label-mao').textContent =
@@ -873,10 +886,12 @@
     const nomeFinal = itemSelecionado.personalizado
       ? `${itemSelecionado.nome}: ${nomePersonalizado}`
       : itemSelecionado.nome;
+    const comodo = document.getElementById('form-comodo').value.trim();
 
     orcamentoAtual.push({
       categoria: categoriaAtual.nome,
       nome: nomeFinal,
+      comodo: comodo,
       quantidade: qtd,
       unidade: itemSelecionado.unidade,
       maoDeObraUnit: valor,
@@ -893,6 +908,7 @@
     itemSelecionado = item;
     camposX2Ativos = new Set();
     document.getElementById('medidas-titulo').textContent = item.nome;
+    document.getElementById('medidas-comodo').value = '';
 
     const container = document.getElementById('medidas-campos');
     container.innerHTML = '';
@@ -1010,6 +1026,7 @@
       orcamentoAtual.push({
         categoria: categoriaAtual.nome,
         nome: detalhes ? `${itemSelecionado.nome} (${detalhes})` : itemSelecionado.nome,
+        comodo: document.getElementById('medidas-comodo').value.trim(),
         quantidade: 1,
         unidade: '',
         maoDeObraUnit: valorM2,
@@ -1028,6 +1045,7 @@
     const novoItem = {
       categoria: categoriaAtual.nome,
       nome: itemSelecionado.nome,
+      comodo: document.getElementById('medidas-comodo').value.trim(),
       quantidade: quantidade,
       unidade: itemSelecionado.tipo === 'area' ? 'm²' : 'm',
       maoDeObraUnit: valorM2,
@@ -1093,7 +1111,9 @@
       tituloCat.textContent = cat.toUpperCase();
       lista.appendChild(tituloCat);
 
-      orcamentoAtual.filter(it => it.categoria === cat).forEach(it => {
+      const itensCategoria = orcamentoAtual.filter(it => it.categoria === cat);
+
+      itensCategoria.forEach(it => {
         total += it.total;
         const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
         const linhaDetalhe = it.unidade === ''
@@ -1103,12 +1123,38 @@
         linha.className = 'relatorio-item';
         linha.innerHTML = `
           <div>
-            <div>${it.nome}</div>
+            <div>${nomeExibicao(it)}</div>
             <div class="qtd">${linhaDetalhe}</div>
           </div>
           <div>R$ ${it.total.toFixed(2)}</div>
         `;
         lista.appendChild(linha);
+      });
+
+      // Subtotal automático quando o mesmo item aparece mais de uma vez (ex.: vários cômodos)
+      const gruposPorNome = {};
+      itensCategoria.forEach(it => {
+        if (!gruposPorNome[it.nome]) gruposPorNome[it.nome] = [];
+        gruposPorNome[it.nome].push(it);
+      });
+      Object.entries(gruposPorNome).forEach(([nome, itens]) => {
+        if (itens.length < 2) return;
+        const somaQtd = itens.reduce((s, it) => s + it.quantidade, 0);
+        const somaTotal = itens.reduce((s, it) => s + it.total, 0);
+        const unidadeTxt = itens[0].unidade === 'm' ? 'metros' : (itens[0].unidade === 'm²' ? 'm²' : (itens[0].unidade === '' ? '' : 'unidades'));
+        const subtotal = document.createElement('div');
+        subtotal.className = 'relatorio-item';
+        subtotal.style.fontWeight = '700';
+        subtotal.style.borderTop = '1px dashed var(--linha)';
+        subtotal.style.paddingTop = '6px';
+        subtotal.innerHTML = `
+          <div>
+            <div>Total ${nome}</div>
+            <div class="qtd">${unidadeTxt ? somaQtd.toFixed(2) + ' ' + unidadeTxt : ''}</div>
+          </div>
+          <div>R$ ${somaTotal.toFixed(2)}</div>
+        `;
+        lista.appendChild(subtotal);
       });
     });
 
@@ -1515,7 +1561,8 @@
         y += 11;
 
         let zebra = false;
-        orcamentoAtual.filter(it => it.categoria === cat).forEach(it => {
+        const itensCategoria = orcamentoAtual.filter(it => it.categoria === cat);
+        itensCategoria.forEach(it => {
           y = novaPaginaSeNecessario(y, 270);
           total += it.total;
 
@@ -1529,7 +1576,7 @@
           const detalhe = it.unidade === '' ? '' : `${it.quantidade.toFixed(2)} ${unidadeTxt}`;
 
           doc.setFontSize(10);
-          doc.text(it.nome, margemEsq + 2, y, { maxWidth: (centro - margemEsq) - 6 });
+          doc.text(nomeExibicao(it), margemEsq + 2, y, { maxWidth: (centro - margemEsq) - 6 });
 
           if (detalhe) {
             doc.setFontSize(9);
@@ -1544,6 +1591,38 @@
           doc.setFont(undefined, 'normal');
           y += 7;
         });
+
+        // Subtotal automático quando o mesmo item aparece mais de uma vez (ex.: vários cômodos)
+        const gruposPorNome = {};
+        itensCategoria.forEach(it => {
+          if (!gruposPorNome[it.nome]) gruposPorNome[it.nome] = [];
+          gruposPorNome[it.nome].push(it);
+        });
+        Object.entries(gruposPorNome).forEach(([nome, itens]) => {
+          if (itens.length < 2) return;
+          y = novaPaginaSeNecessario(y, 270);
+          const somaQtd = itens.reduce((s, i) => s + i.quantidade, 0);
+          const somaTotal = itens.reduce((s, i) => s + i.total, 0);
+          const unidadeTxt = itens[0].unidade === 'm' ? 'metros' : (itens[0].unidade === 'm²' ? 'm²' : (itens[0].unidade === '' ? '' : 'unidades'));
+
+          doc.setDrawColor(200, 200, 200);
+          doc.line(margemEsq, y - 4, margemDir, y - 4);
+
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(10);
+          doc.text(`Total ${nome}`, margemEsq + 2, y);
+          if (unidadeTxt) {
+            doc.setFontSize(9);
+            doc.setTextColor(...CINZA_TEXTO);
+            doc.text(`${somaQtd.toFixed(2)} ${unidadeTxt}`, centro, y, { align: 'center' });
+            doc.setTextColor(...PRETO);
+          }
+          doc.setFontSize(10);
+          doc.text(`R$ ${somaTotal.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
+          doc.setFont(undefined, 'normal');
+          y += 7;
+        });
+
         y += 3;
       });
 
