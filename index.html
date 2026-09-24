@@ -255,7 +255,7 @@
         Novo Orçamento
       </button>
     </main>
-    <footer><span>Help Orçamentos © Manutenção Predial · v2.2</span></footer>
+    <footer><span>Help Orçamentos © Manutenção Predial · v3.0</span></footer>
   </section>
 
   <!-- ===== TELA 0B: DADOS DO CLIENTE ===== -->
@@ -327,8 +327,9 @@
         <div id="resumo-home"></div>
       </div>
     </main>
-    <footer>
+    <footer style="display:flex; flex-direction:column; gap:10px;">
       <button class="btn btn-primario btn-bloco" onclick="finalizarOrcamento()">Finalizar orçamento</button>
+      <button class="btn btn-secundario btn-bloco" onclick="abrirTelaOrcamentosSalvos()">📁 Orçamentos salvos</button>
     </footer>
   </section>
 
@@ -469,10 +470,41 @@
       </div>
     </main>
     <footer style="display:flex; flex-direction:column; gap:10px;">
-      <button class="btn btn-primario btn-bloco" onclick="gerarEEnviarPDF()">📄 Gerar e enviar PDF</button>
+      <button class="btn btn-primario btn-bloco" onclick="salvarOrcamentoAtual()">💾 Salvar orçamento</button>
       <button class="btn btn-secundario btn-bloco" id="btn-pdf-drywall" style="display:none;" onclick="gerarPDFMateriaisDrywall()">🧱 PDF de materiais (Dry Wall)</button>
       <button class="btn btn-secundario btn-bloco" id="btn-pdf-medidas-drywall" style="display:none;" onclick="gerarPDFMedidasDryWall()">📐 PDF de medidas (Dry Wall)</button>
       <button class="btn btn-secundario btn-bloco" onclick="irPara('tela-home')">Início</button>
+    </footer>
+  </section>
+
+  <!-- ===== TELA 5: ORÇAMENTOS SALVOS (LISTA) ===== -->
+  <section class="tela" id="tela-orcamentos-salvos">
+    <header>
+      <button class="voltar" onclick="irPara('tela-home')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">HISTÓRICO</p>
+        <h1>Orçamentos salvos</h1>
+        <p class="sub">Toque em um orçamento para ver detalhes</p>
+      </div>
+    </header>
+    <main id="lista-orcamentos-salvos"></main>
+  </section>
+
+  <!-- ===== TELA 6: DETALHE DO ORÇAMENTO SALVO ===== -->
+  <section class="tela" id="tela-orcamento-detalhe">
+    <header>
+      <button class="voltar" onclick="irPara('tela-orcamentos-salvos')">‹</button>
+      <div class="titulos">
+        <p class="eyebrow">ORÇAMENTO SALVO</p>
+        <h1 id="detalhe-titulo">Cliente</h1>
+        <p class="sub" id="detalhe-data">Salvo em --/--/----</p>
+      </div>
+    </header>
+    <main id="detalhe-conteudo"></main>
+    <footer style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn btn-primario btn-bloco" onclick="enviarOrcamentoSalvo()">📤 Enviar (gerar PDF)</button>
+      <button class="btn btn-secundario btn-bloco" onclick="editarOrcamentoSalvo()">✏️ Editar</button>
+      <button class="btn btn-secundario btn-bloco" style="color:var(--vermelho-remover); border-color:var(--vermelho-remover);" onclick="excluirOrcamentoSalvo()">🗑️ Excluir</button>
     </footer>
   </section>
 
@@ -684,18 +716,61 @@
     return resultado;
   }
 
+  /* ---------- ARMAZENAMENTO LOCAL (localStorage) ---------- */
+  const LS_CONFIG_KEY = 'helpOrc_config';
+  const LS_ORCAMENTOS_KEY = 'helpOrc_orcamentos_salvos';
+
+  function carregarConfig() {
+    try {
+      const raw = localStorage.getItem(LS_CONFIG_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { console.error('Erro ao ler config salva:', e); }
+    return { empresaNome: '', empresaCnpj: '', meuNome: '', meuTelefone: '' };
+  }
+
+  function salvarConfig() {
+    try {
+      localStorage.setItem(LS_CONFIG_KEY, JSON.stringify({ empresaNome, empresaCnpj, meuNome, meuTelefone }));
+    } catch (e) { console.error('Erro ao salvar config:', e); }
+  }
+
+  function carregarOrcamentosSalvos() {
+    try {
+      const raw = localStorage.getItem(LS_ORCAMENTOS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { console.error('Erro ao ler orçamentos salvos:', e); }
+    return [];
+  }
+
+  function persistirOrcamentosSalvos() {
+    try {
+      localStorage.setItem(LS_ORCAMENTOS_KEY, JSON.stringify(orcamentosSalvos));
+    } catch (e) {
+      console.error('Erro ao salvar orçamentos:', e);
+      alert('Não foi possível salvar o orçamento neste dispositivo (armazenamento cheio ou bloqueado).');
+    }
+  }
+
+  function idUnico() {
+    return 'orc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  }
+
   /* ---------- ESTADO ---------- */
   let categoriaAtual = null;
   let itemSelecionado = null;
   let camposX2Ativos = new Set();
   let orcamentoAtual = []; // { categoria, nome, quantidade, unidade, maoDeObraUnit, valorFixo, total }
   let dadosCliente = { nome: '', empresa: '', telefone: '', endereco: '', obs: '' };
-  let meuTelefone = '';
-  let empresaNome = '';
-  let empresaCnpj = '';
-  let meuNome = '';
+  const configSalva = carregarConfig();
+  let meuTelefone = configSalva.meuTelefone || '';
+  let empresaNome = configSalva.empresaNome || '';
+  let empresaCnpj = configSalva.empresaCnpj || '';
+  let meuNome = configSalva.meuNome || '';
   let modoMedidasDryWall = false;
   let drywallMedidasAtual = null;
+  let orcamentosSalvos = carregarOrcamentosSalvos();
+  let orcamentoEmEdicaoId = null;
+  let orcamentoSelecionadoId = null;
 
   /* ---------- NAVEGAÇÃO ---------- */
   function irPara(idTela) {
@@ -706,6 +781,7 @@
   /* ---------- TELA 0: SPLASH / NOVO ORÇAMENTO ---------- */
   function novoOrcamento() {
     orcamentoAtual = [];
+    orcamentoEmEdicaoId = null;
     dadosCliente = { nome: '', empresa: '', telefone: '', endereco: '', obs: '' };
     document.getElementById('cliente-nome').value = '';
     document.getElementById('cliente-empresa').value = '';
@@ -762,6 +838,7 @@
     empresaNome = document.getElementById('empresa-nome').value.trim();
     empresaCnpj = document.getElementById('empresa-cnpj').value.trim();
     meuNome = document.getElementById('meu-nome').value.trim();
+    salvarConfig();
     renderizarResumo();
     irPara('tela-home');
   }
@@ -1111,6 +1188,17 @@
     return { quantidade, total: quantidade * valorM2, valorM2 };
   }
 
+  function atualizarPreviewMedidas() {
+    const { total } = calcularMedidas();
+    if (itemSelecionado.tipo !== 'direto') {
+      const { quantidade } = calcularMedidas();
+      const sufixo = itemSelecionado.tipo === 'area' ? ' m²' : ' m';
+      document.getElementById('medidas-preview-area').textContent =
+        quantidade.toFixed(2).replace('.', ',') + sufixo;
+    }
+    document.getElementById('medidas-preview-total').textContent =
+      'R$ ' + total.toFixed(2).replace('.', ',');
+  }
 
 
   function confirmarItemMedidas() {
@@ -1280,54 +1368,60 @@
 
       const itensCategoria = orcamentoAtual.filter(it => it.categoria === cat);
 
+      // Agrupa por nome mantendo a ordem de primeira aparição
+      const gruposOrdenados = [];
+      const indiceGrupo = {};
       itensCategoria.forEach(it => {
-        total += it.total;
-        const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
-        const linhaDetalhe = it.unidade === ''
-          ? ''
-          : `${it.quantidade.toFixed(2)} ${unidadeTxt}${it.valorFixo ? '' : ' × R$ ' + it.maoDeObraUnit.toFixed(2)}`;
-        const linha = document.createElement('div');
-        linha.className = 'relatorio-item';
-        linha.innerHTML = `
-          <div>
-            <div>${nomeExibicao(it)}</div>
-            <div class="qtd">${linhaDetalhe}</div>
-          </div>
-          <div>R$ ${it.total.toFixed(2)}</div>
-        `;
-        lista.appendChild(linha);
+        if (!(it.nome in indiceGrupo)) {
+          indiceGrupo[it.nome] = gruposOrdenados.length;
+          gruposOrdenados.push({ nome: it.nome, itens: [] });
+        }
+        gruposOrdenados[indiceGrupo[it.nome]].itens.push(it);
       });
 
-      // Subtotal automático quando o mesmo item aparece mais de uma vez (ex.: vários cômodos)
-      const gruposPorNome = {};
-      itensCategoria.forEach(it => {
-        if (!gruposPorNome[it.nome]) gruposPorNome[it.nome] = [];
-        gruposPorNome[it.nome].push(it);
-      });
-      Object.entries(gruposPorNome).forEach(([nome, itens]) => {
-        if (itens.length < 2) return;
-        const somaQtd = itens.reduce((s, it) => s + it.quantidade, 0);
-        const somaTotal = itens.reduce((s, it) => s + it.total, 0);
-        const unidadeTxt = itens[0].unidade === 'm' ? 'metros' : (itens[0].unidade === 'm²' ? 'm²' : (itens[0].unidade === '' ? '' : 'unidades'));
-        const subtotal = document.createElement('div');
-        subtotal.className = 'relatorio-item';
-        subtotal.style.fontWeight = '700';
-        subtotal.style.borderTop = '1px dashed var(--linha)';
-        subtotal.style.paddingTop = '6px';
-        subtotal.innerHTML = `
-          <div>
-            <div>Total ${nome}</div>
-            <div class="qtd">${unidadeTxt ? somaQtd.toFixed(2) + ' ' + unidadeTxt : ''}</div>
-          </div>
-          <div>R$ ${somaTotal.toFixed(2)}</div>
-        `;
-        lista.appendChild(subtotal);
+      gruposOrdenados.forEach(grupo => {
+        grupo.itens.forEach(it => {
+          total += it.total;
+          const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
+          const linhaDetalhe = it.unidade === ''
+            ? ''
+            : `${it.quantidade.toFixed(2)} ${unidadeTxt}${it.valorFixo ? '' : ' × R$ ' + it.maoDeObraUnit.toFixed(2)}`;
+          const linha = document.createElement('div');
+          linha.className = 'relatorio-item';
+          linha.innerHTML = `
+            <div>
+              <div>${nomeExibicao(it)}</div>
+              <div class="qtd">${linhaDetalhe}</div>
+            </div>
+            <div>R$ ${it.total.toFixed(2)}</div>
+          `;
+          lista.appendChild(linha);
+        });
+
+        // Subtotal automático logo após o grupo, quando o mesmo item aparece mais de uma vez
+        if (grupo.itens.length >= 2) {
+          const somaQtd = grupo.itens.reduce((s, it) => s + it.quantidade, 0);
+          const somaTotal = grupo.itens.reduce((s, it) => s + it.total, 0);
+          const unidadeTxt = grupo.itens[0].unidade === 'm' ? 'metros' : (grupo.itens[0].unidade === 'm²' ? 'm²' : (grupo.itens[0].unidade === '' ? '' : 'unidades'));
+          const subtotal = document.createElement('div');
+          subtotal.className = 'relatorio-item';
+          subtotal.style.fontWeight = '700';
+          subtotal.style.borderTop = '1px dashed var(--linha)';
+          subtotal.style.paddingTop = '6px';
+          subtotal.innerHTML = `
+            <div>
+              <div>Total ${grupo.nome}</div>
+              <div class="qtd">${unidadeTxt ? somaQtd.toFixed(2) + ' ' + unidadeTxt : ''}</div>
+            </div>
+            <div>R$ ${somaTotal.toFixed(2)}</div>
+          `;
+          lista.appendChild(subtotal);
+        }
       });
     });
 
     const materiaisDrywall = calcularMateriaisDrywall();
     document.getElementById('btn-pdf-drywall').style.display = materiaisDrywall.length > 0 ? 'block' : 'none';
-    document.getElementById('btn-pdf-medidas-drywall').style.display = orcamentoAtual.some(it => it.categoria === 'Dry Wall' && it._drywallRegistroId) ? 'block' : 'none';
     document.getElementById('btn-pdf-medidas-drywall').style.display = orcamentoAtual.some(it => it.categoria === 'Dry Wall') ? 'block' : 'none';
     materiaisDrywall.forEach(bloco => {
       const box = document.createElement('div');
@@ -1350,7 +1444,171 @@
     irPara('tela-relatorio');
   }
 
-  /* ---------- GERAR E ENVIAR PDF ---------- */
+  /* ---------- ORÇAMENTOS SALVOS ---------- */
+  function formatarDataHora(iso) {
+    const d = new Date(iso);
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${dia}/${mes}/${ano} às ${hh}:${mm}`;
+  }
+
+  function salvarOrcamentoAtual() {
+    if (orcamentoAtual.length === 0) {
+      alert('Adicione ao menos um item antes de salvar.');
+      return;
+    }
+    const total = orcamentoAtual.reduce((s, it) => s + it.total, 0);
+    const agora = new Date().toISOString();
+
+    if (orcamentoEmEdicaoId) {
+      const idx = orcamentosSalvos.findIndex(o => o.id === orcamentoEmEdicaoId);
+      if (idx >= 0) {
+        orcamentosSalvos[idx] = {
+          ...orcamentosSalvos[idx],
+          dadosCliente: JSON.parse(JSON.stringify(dadosCliente)),
+          itens: JSON.parse(JSON.stringify(orcamentoAtual)),
+          total,
+          dataAtualizacao: agora,
+        };
+      } else {
+        orcamentoEmEdicaoId = null;
+      }
+    }
+    if (!orcamentoEmEdicaoId) {
+      orcamentoEmEdicaoId = idUnico();
+      orcamentosSalvos.push({
+        id: orcamentoEmEdicaoId,
+        dadosCliente: JSON.parse(JSON.stringify(dadosCliente)),
+        itens: JSON.parse(JSON.stringify(orcamentoAtual)),
+        total,
+        dataCriacao: agora,
+        dataAtualizacao: agora,
+      });
+    }
+
+    persistirOrcamentosSalvos();
+    abrirDetalheOrcamentoSalvo(orcamentoEmEdicaoId);
+  }
+
+  function abrirTelaOrcamentosSalvos() {
+    renderizarListaOrcamentosSalvos();
+    irPara('tela-orcamentos-salvos');
+  }
+
+  function renderizarListaOrcamentosSalvos() {
+    const container = document.getElementById('lista-orcamentos-salvos');
+    if (orcamentosSalvos.length === 0) {
+      container.innerHTML = '<p class="resumo-vazio">Nenhum orçamento salvo ainda</p>';
+      return;
+    }
+    const ordenados = [...orcamentosSalvos].sort((a, b) => b.dataAtualizacao.localeCompare(a.dataAtualizacao));
+    container.innerHTML = '';
+    ordenados.forEach(orc => {
+      const btn = document.createElement('button');
+      btn.className = 'categoria';
+      const nomeCliente = orc.dadosCliente?.nome || 'Cliente não informado';
+      btn.innerHTML = `
+        <div class="icone">📋</div>
+        <div class="info">
+          <p class="nome">${nomeCliente}</p>
+          <p class="desc">${formatarDataHora(orc.dataAtualizacao)} · R$ ${orc.total.toFixed(2)}</p>
+        </div>
+        <div class="seta">›</div>
+      `;
+      btn.addEventListener('click', () => abrirDetalheOrcamentoSalvo(orc.id));
+      container.appendChild(btn);
+    });
+  }
+
+  function abrirDetalheOrcamentoSalvo(id) {
+    const orc = orcamentosSalvos.find(o => o.id === id);
+    if (!orc) { abrirTelaOrcamentosSalvos(); return; }
+    orcamentoSelecionadoId = id;
+
+    document.getElementById('detalhe-titulo').textContent = orc.dadosCliente?.nome || 'Cliente não informado';
+    document.getElementById('detalhe-data').textContent =
+      `Salvo em ${formatarDataHora(orc.dataAtualizacao)} · R$ ${orc.total.toFixed(2)}`;
+
+    const cont = document.getElementById('detalhe-conteudo');
+    cont.innerHTML = '';
+
+    const cli = orc.dadosCliente || {};
+    if (cli.nome || cli.empresa || cli.telefone || cli.endereco) {
+      const box = document.createElement('div');
+      box.className = 'resumo-box';
+      box.innerHTML = `
+        <p class="resumo-titulo">DADOS DO CLIENTE</p>
+        ${cli.nome ? `<div class="resumo-linha"><span>${cli.nome}</span></div>` : ''}
+        ${cli.empresa ? `<div class="resumo-linha"><span>Empresa: ${cli.empresa}</span></div>` : ''}
+        ${cli.telefone ? `<div class="resumo-linha"><span>${cli.telefone}</span></div>` : ''}
+        ${cli.endereco ? `<div class="resumo-linha"><span>${cli.endereco}</span></div>` : ''}
+      `;
+      cont.appendChild(box);
+    }
+
+    const categorias = [...new Set(orc.itens.map(it => it.categoria))];
+    categorias.forEach(cat => {
+      const titulo = document.createElement('p');
+      titulo.className = 'resumo-titulo';
+      titulo.style.marginTop = '4px';
+      titulo.textContent = cat.toUpperCase();
+      cont.appendChild(titulo);
+
+      orc.itens.filter(it => it.categoria === cat).forEach(it => {
+        const linha = document.createElement('div');
+        linha.className = 'relatorio-item';
+        const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : (it.unidade === '' ? '' : 'unidades'));
+        linha.innerHTML = `
+          <div>
+            <div>${nomeExibicao(it)}</div>
+            <div class="qtd">${unidadeTxt ? it.quantidade.toFixed(2) + ' ' + unidadeTxt : ''}</div>
+          </div>
+          <div>R$ ${it.total.toFixed(2)}</div>
+        `;
+        cont.appendChild(linha);
+      });
+    });
+
+    irPara('tela-orcamento-detalhe');
+  }
+
+  function editarOrcamentoSalvo() {
+    const orc = orcamentosSalvos.find(o => o.id === orcamentoSelecionadoId);
+    if (!orc) return;
+    dadosCliente = JSON.parse(JSON.stringify(orc.dadosCliente));
+    orcamentoAtual = JSON.parse(JSON.stringify(orc.itens));
+    orcamentoEmEdicaoId = orc.id;
+    renderizarResumo();
+    irPara('tela-home');
+  }
+
+  function enviarOrcamentoSalvo() {
+    const orc = orcamentosSalvos.find(o => o.id === orcamentoSelecionadoId);
+    if (!orc) return;
+    const orcamentoAtualBackup = orcamentoAtual;
+    const dadosClienteBackup = dadosCliente;
+    orcamentoAtual = orc.itens;
+    dadosCliente = orc.dadosCliente;
+    try {
+      gerarEEnviarPDF();
+    } finally {
+      orcamentoAtual = orcamentoAtualBackup;
+      dadosCliente = dadosClienteBackup;
+    }
+  }
+
+  function excluirOrcamentoSalvo() {
+    if (!confirm('Excluir este orçamento salvo? Essa ação não pode ser desfeita.')) return;
+    orcamentosSalvos = orcamentosSalvos.filter(o => o.id !== orcamentoSelecionadoId);
+    if (orcamentoEmEdicaoId === orcamentoSelecionadoId) orcamentoEmEdicaoId = null;
+    persistirOrcamentosSalvos();
+    orcamentoSelecionadoId = null;
+    abrirTelaOrcamentosSalvos();
+  }
+
   /* ---------- TELA 3C: LISTA DE MATERIAIS (PINTURA) ---------- */
   function abrirTelaMateriais() {
     const container = document.getElementById('materiais-campos');
@@ -1888,65 +2146,72 @@
 
         let zebra = false;
         const itensCategoria = orcamentoAtual.filter(it => it.categoria === cat);
+
+        const gruposOrdenados = [];
+        const indiceGrupo = {};
         itensCategoria.forEach(it => {
-          y = novaPaginaSeNecessario(y, 270);
-          total += it.total;
-
-          if (zebra) {
-            doc.setFillColor(...CINZA_CLARO);
-            doc.rect(margemEsq, y - 4.5, margemDir - margemEsq, 7, 'F');
+          if (!(it.nome in indiceGrupo)) {
+            indiceGrupo[it.nome] = gruposOrdenados.length;
+            gruposOrdenados.push({ nome: it.nome, itens: [] });
           }
-          zebra = !zebra;
+          gruposOrdenados[indiceGrupo[it.nome]].itens.push(it);
+        });
 
-          const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
-          const detalhe = it.unidade === '' ? '' : `${it.quantidade.toFixed(2)} ${unidadeTxt}`;
+        gruposOrdenados.forEach(grupo => {
+          grupo.itens.forEach(it => {
+            y = novaPaginaSeNecessario(y, 270);
+            total += it.total;
 
-          doc.setFontSize(10);
-          doc.text(nomeExibicao(it), margemEsq + 2, y, { maxWidth: (centro - margemEsq) - 6 });
+            if (zebra) {
+              doc.setFillColor(...CINZA_CLARO);
+              doc.rect(margemEsq, y - 4.5, margemDir - margemEsq, 7, 'F');
+            }
+            zebra = !zebra;
 
-          if (detalhe) {
-            doc.setFontSize(9);
-            doc.setTextColor(...CINZA_TEXTO);
-            doc.text(detalhe, centro, y, { align: 'center' });
-            doc.setTextColor(...PRETO);
+            const unidadeTxt = it.unidade === 'm' ? 'metros' : (it.unidade === 'm²' ? 'm²' : 'unidades');
+            const detalhe = it.unidade === '' ? '' : `${it.quantidade.toFixed(2)} ${unidadeTxt}`;
+
             doc.setFontSize(10);
+            doc.text(nomeExibicao(it), margemEsq + 2, y, { maxWidth: (centro - margemEsq) - 6 });
+
+            if (detalhe) {
+              doc.setFontSize(9);
+              doc.setTextColor(...CINZA_TEXTO);
+              doc.text(detalhe, centro, y, { align: 'center' });
+              doc.setTextColor(...PRETO);
+              doc.setFontSize(10);
+            }
+
+            doc.setFont(undefined, 'bold');
+            doc.text(`R$ ${it.total.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
+            doc.setFont(undefined, 'normal');
+            y += 7;
+          });
+
+          // Subtotal automático logo após o grupo, quando o mesmo item aparece mais de uma vez
+          if (grupo.itens.length >= 2) {
+            y = novaPaginaSeNecessario(y, 270);
+            const somaQtd = grupo.itens.reduce((s, i) => s + i.quantidade, 0);
+            const somaTotal = grupo.itens.reduce((s, i) => s + i.total, 0);
+            const unidadeTxt = grupo.itens[0].unidade === 'm' ? 'metros' : (grupo.itens[0].unidade === 'm²' ? 'm²' : (grupo.itens[0].unidade === '' ? '' : 'unidades'));
+
+            doc.setDrawColor(200, 200, 200);
+            doc.line(margemEsq, y - 4, margemDir, y - 4);
+
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(10);
+            doc.text(`Total ${grupo.nome}`, margemEsq + 2, y);
+            if (unidadeTxt) {
+              doc.setFontSize(9);
+              doc.setTextColor(...CINZA_TEXTO);
+              doc.text(`${somaQtd.toFixed(2)} ${unidadeTxt}`, centro, y, { align: 'center' });
+              doc.setTextColor(...PRETO);
+            }
+            doc.setFontSize(10);
+            doc.text(`R$ ${somaTotal.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
+            doc.setFont(undefined, 'normal');
+            y += 7;
           }
-
-          doc.setFont(undefined, 'bold');
-          doc.text(`R$ ${it.total.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
-          doc.setFont(undefined, 'normal');
-          y += 7;
-        });
-
-        // Subtotal automático quando o mesmo item aparece mais de uma vez (ex.: vários cômodos)
-        const gruposPorNome = {};
-        itensCategoria.forEach(it => {
-          if (!gruposPorNome[it.nome]) gruposPorNome[it.nome] = [];
-          gruposPorNome[it.nome].push(it);
-        });
-        Object.entries(gruposPorNome).forEach(([nome, itens]) => {
-          if (itens.length < 2) return;
-          y = novaPaginaSeNecessario(y, 270);
-          const somaQtd = itens.reduce((s, i) => s + i.quantidade, 0);
-          const somaTotal = itens.reduce((s, i) => s + i.total, 0);
-          const unidadeTxt = itens[0].unidade === 'm' ? 'metros' : (itens[0].unidade === 'm²' ? 'm²' : (itens[0].unidade === '' ? '' : 'unidades'));
-
-          doc.setDrawColor(200, 200, 200);
-          doc.line(margemEsq, y - 4, margemDir, y - 4);
-
-          doc.setFont(undefined, 'bold');
-          doc.setFontSize(10);
-          doc.text(`Total ${nome}`, margemEsq + 2, y);
-          if (unidadeTxt) {
-            doc.setFontSize(9);
-            doc.setTextColor(...CINZA_TEXTO);
-            doc.text(`${somaQtd.toFixed(2)} ${unidadeTxt}`, centro, y, { align: 'center' });
-            doc.setTextColor(...PRETO);
-          }
-          doc.setFontSize(10);
-          doc.text(`R$ ${somaTotal.toFixed(2)}`, margemDir - 2, y, { align: 'right' });
-          doc.setFont(undefined, 'normal');
-          y += 7;
         });
 
         y += 3;
